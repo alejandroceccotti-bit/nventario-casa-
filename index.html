@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock de Casa V6 - Cloud Seguro</title>
+    <title>Stock de Casa V7 - Cloud Seguro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { -webkit-tap-highlight-color: transparent; }
@@ -16,13 +16,13 @@
 <body class="bg-gray-100 font-sans text-gray-800 h-screen flex flex-col">
     
     <script>
-        // CONFIGURACIÓN: Pega aquí la URL que obtuviste en Apps Script (termina en /exec)
+        // CONFIGURACIÓN: Tu URL de Apps Script conectada
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyDxJ7bZFqY9zynADQBRv4vxUxXcRpQHtQXgfscDilmxR8k-MXGvXce0deDk7rs228d/exec";
         const TOKEN = "1424Losb_"; 
     </script>
 
     <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0">
-        <h1 class="text-lg font-bold truncate">📦 Mi Inventario</h1>
+        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V7</h1>
         <div class="flex gap-2">
             <button onclick="guardarDatos(true)" class="bg-blue-800 px-2 py-1 rounded text-xs shadow flex items-center gap-1">
                 ☁️ Sync
@@ -47,18 +47,29 @@
             <form id="form-add-stock" class="mb-4 bg-white p-3 rounded-lg shadow-sm" onsubmit="agregarProducto(event, 'stock')">
                 <h3 class="text-sm font-bold text-gray-600 mb-2">Carga Manual a Stock</h3>
                 <div class="flex gap-2 mb-2">
-                    <input type="text" id="nombre-stock" placeholder="Ej. Fideos" class="flex-1 border rounded px-2 py-1.5 text-sm" required>
+                    <input type="text" id="nombre-stock" placeholder="Ej. Tomates o Fideos" class="flex-1 border rounded px-2 py-1.5 text-sm" required>
                     <select id="categoria-stock" class="border rounded px-2 py-1.5 text-sm w-28">
                         <option value="Alimento">Alimento</option>
                         <option value="Limpieza">Limpieza</option>
                     </select>
                 </div>
                 <div class="flex gap-2 items-center">
-                    <label class="text-xs text-gray-500">Cantidad:</label>
-                    <input type="number" id="cant-stock" value="1" min="0" class="w-16 border rounded px-2 py-1 text-sm">
-                    <label class="text-xs text-gray-500">Mínimo:</label>
-                    <input type="number" id="min-stock" value="1" min="0" class="w-16 border rounded px-2 py-1 text-sm">
-                    <button type="submit" class="ml-auto bg-blue-500 text-white px-4 py-1.5 rounded text-sm font-bold">+</button>
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-400 font-bold uppercase block">Cantidad / Kilos</label>
+                        <input type="number" step="any" id="cant-stock" value="1" min="0" class="w-full border rounded px-2 py-1 text-sm" required>
+                    </div>
+                    <div class="w-24">
+                        <label class="text-[10px] text-gray-400 font-bold uppercase block">Medida</label>
+                        <select id="unidad-stock" class="w-full border rounded px-2 py-1 text-sm">
+                            <option value="unid">Unid.</option>
+                            <option value="kg">Kg</option>
+                        </select>
+                    </div>
+                    <div class="w-20">
+                        <label class="text-[10px] text-gray-400 font-bold uppercase block">Mínimo</label>
+                        <input type="number" step="any" id="min-stock" value="1" min="0" class="w-full border rounded px-2 py-1 text-sm" required>
+                    </div>
+                    <button type="submit" class="ml-auto bg-blue-500 text-white px-4 py-2 rounded text-sm font-bold self-end">+</button>
                 </div>
             </form>
             <div id="lista-stock" class="space-y-3 pb-6"></div>
@@ -71,7 +82,7 @@
                     <input type="text" id="nombre-compra" placeholder="Ej. Lavandina" class="flex-1 border rounded px-2 py-1.5 text-sm" required>
                 </div>
                 <div class="flex justify-between items-center">
-                    <p class="text-xs text-gray-400 italic">Se agregará con stock 0.</p>
+                    <p class="text-xs text-gray-400 italic">Se agregará con cantidad 0.</p>
                     <button type="submit" class="bg-blue-500 text-white px-4 py-1.5 rounded text-sm font-bold">Agregar</button>
                 </div>
             </form>
@@ -94,14 +105,21 @@
                 <option value="Alimento">Alimento</option>
                 <option value="Limpieza">Limpieza</option>
             </select>
-            <div class="flex gap-4 mb-4">
-                <div class="w-1/2">
-                    <label class="block text-sm font-semibold mb-1 text-gray-600">Stock Actual</label>
-                    <input type="number" id="edit-cantidad" class="w-full border rounded-lg p-2 bg-gray-50">
+            <div class="flex gap-2 mb-3">
+                <div class="flex-1">
+                    <label class="block text-xs font-semibold mb-1 text-gray-600">Stock Actual</label>
+                    <input type="number" step="any" id="edit-cantidad" class="w-full border rounded-lg p-2 bg-gray-50">
                 </div>
-                <div class="w-1/2">
-                    <label class="block text-sm font-semibold mb-1 text-gray-600">Alerta Mínima</label>
-                    <input type="number" id="edit-minimo" class="w-full border rounded-lg p-2 bg-gray-50">
+                <div class="w-24">
+                    <label class="block text-xs font-semibold mb-1 text-gray-600">Medida</label>
+                    <select id="edit-unidad" class="w-full border rounded-lg p-2 bg-gray-50">
+                        <option value="unid">Unid.</option>
+                        <option value="kg">Kg</option>
+                    </select>
+                </div>
+                <div class="w-24">
+                    <label class="block text-xs font-semibold mb-1 text-gray-600">Alerta Mín.</label>
+                    <input type="number" step="any" id="edit-minimo" class="w-full border rounded-lg p-2 bg-gray-50">
                 </div>
             </div>
             <div class="flex justify-between items-center mt-6">
@@ -117,8 +135,8 @@
     <div id="modal-texto" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
         <div class="bg-white p-5 rounded-xl w-full max-w-sm shadow-xl flex flex-col h-2/3">
             <h2 class="font-bold text-lg mb-2">📝 Carga Masiva (Texto)</h2>
-            <p class="text-xs text-gray-500 mb-2">Escribe o pega una lista.</p>
-            <textarea id="texto-masivo" class="w-full flex-1 border rounded-lg p-3 text-sm bg-gray-50 mb-4" placeholder="Ej: Compré 3 fideos y lavandina..."></textarea>
+            <p class="text-xs text-gray-500 mb-2">Escribe o pega una lista de WhatsApp.</p>
+            <textarea id="texto-masivo" class="w-full flex-1 border rounded-lg p-3 text-sm bg-gray-50 mb-4" placeholder="Ej: Comprar 1.5 kg de tomates, pan y lavandina..."></textarea>
             <div class="flex justify-end gap-2">
                 <button onclick="cerrarModalTexto()" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancelar</button>
                 <button onclick="procesarTextoIA()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold shadow-md">Analizar Texto</button>
@@ -129,7 +147,7 @@
     <div id="modal-verificacion" class="hidden fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center p-4 z-50">
         <div class="bg-white p-4 rounded-xl w-full max-w-md shadow-xl max-h-full flex flex-col">
             <h2 class="font-bold text-lg mb-1">🤖 Revisión de IA</h2>
-            <p class="text-xs text-gray-500 mb-3">Revisa, corrige o borra lo que detectó la IA.</p>
+            <p class="text-xs text-gray-500 mb-3">Revisa, ajusta cantidades o pon cantidad 0 si es para comprar.</p>
             <div id="lista-verificacion" class="flex-1 overflow-y-auto space-y-3 p-1 mb-4 border border-gray-200 rounded bg-gray-50"></div>
             <div class="flex justify-between items-center shrink-0">
                 <button onclick="cerrarModalVerificacion()" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-bold">Descartar</button>
@@ -156,7 +174,14 @@
                 });
                 const data = await response.json();
                 if(data.inventario) {
-                    inventario = data.inventario;
+                    inventario = data.inventario.map(i => ({
+                        id: i.id || Date.now() + Math.random(),
+                        nombre: i.nombre || '',
+                        categoria: i.categoria || 'Alimento',
+                        cantidad: parseFloat(i.cantidad) || 0,
+                        unidad: i.unidad || 'unid',
+                        minimo: parseFloat(i.minimo) || 1
+                    }));
                     renderizar();
                 } else if(data.error) {
                     throw new Error(data.error);
@@ -199,14 +224,16 @@
             e.preventDefault();
             let nombre = document.getElementById(origen === 'stock' ? 'nombre-stock' : 'nombre-compra').value;
             let categoria = origen === 'stock' ? document.getElementById('categoria-stock').value : "Alimento";
-            let cantidad = origen === 'stock' ? parseInt(document.getElementById('cant-stock').value) : 0;
-            let minimo = origen === 'stock' ? parseInt(document.getElementById('min-stock').value) : 1;
+            let cantidad = origen === 'stock' ? parseFloat(document.getElementById('cant-stock').value) || 0 : 0;
+            let unidad = origen === 'stock' ? document.getElementById('unidad-stock').value : 'unid';
+            let minimo = origen === 'stock' ? parseFloat(document.getElementById('min-stock').value) || 1 : 1;
             
-            inventario.push({ id: Date.now(), nombre, categoria, cantidad, minimo });
+            inventario.push({ id: Date.now(), nombre, categoria, cantidad, unidad, minimo });
             document.getElementById(`form-add-${origen}`).reset();
             if(origen === 'stock') {
                 document.getElementById('cant-stock').value = 1;
                 document.getElementById('min-stock').value = 1;
+                document.getElementById('unidad-stock').value = 'unid';
             }
             guardarDatos(true);
         }
@@ -219,6 +246,18 @@
             }
         }
 
+        function comprarCantidadCustom(id) {
+            const item = inventario.find(i => i.id === id);
+            if (!item) return;
+            let cantidadAgregar = prompt(`¿Cuántos ${item.unidad === 'kg' ? 'kilos' : 'unidades'} de "${item.nombre}" compraste?`, "1");
+            if (cantidadAgregar === null) return;
+            let num = parseFloat(cantidadAgregar);
+            if (!isNaN(num) && num > 0) {
+                item.cantidad += num;
+                guardarDatos(true);
+            }
+        }
+
         function abrirModal(id) {
             const item = inventario.find(i => i.id === id);
             if (!item) return;
@@ -226,6 +265,7 @@
             document.getElementById('edit-nombre').value = item.nombre;
             document.getElementById('edit-categoria').value = item.categoria || 'Alimento';
             document.getElementById('edit-cantidad').value = item.cantidad;
+            document.getElementById('edit-unidad').value = item.unidad || 'unid';
             document.getElementById('edit-minimo').value = item.minimo;
             document.getElementById('modal-editar').classList.remove('hidden');
         }
@@ -238,8 +278,9 @@
             if (item) {
                 item.nombre = document.getElementById('edit-nombre').value;
                 item.categoria = document.getElementById('edit-categoria').value;
-                item.cantidad = parseInt(document.getElementById('edit-cantidad').value);
-                item.minimo = parseInt(document.getElementById('edit-minimo').value);
+                item.cantidad = parseFloat(document.getElementById('edit-cantidad').value) || 0;
+                item.unidad = document.getElementById('edit-unidad').value;
+                item.minimo = parseFloat(document.getElementById('edit-minimo').value) || 1;
                 guardarDatos(true);
                 cerrarModal();
             }
@@ -322,7 +363,8 @@
                 id_temp: 'temp_' + index,
                 nombre: p.nombre || 'Desconocido',
                 categoria: p.categoria === 'Limpieza' ? 'Limpieza' : 'Alimento',
-                cantidad: parseInt(p.cantidad) || 1,
+                cantidad: parseFloat(p.cantidad) || 0,
+                unidad: p.unidad || 'unid',
                 minimo: 1
             }));
             dibujarListaVerificacion();
@@ -352,8 +394,16 @@
                             </div>
                             <div class="w-20">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase">Cant.</label>
-                                <input type="number" min="1" class="w-full border-b border-gray-300 text-sm py-1 text-center bg-transparent" 
-                                    value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseInt(this.value)||0">
+                                <input type="number" step="any" class="w-full border-b border-gray-300 text-sm py-1 text-center bg-transparent" 
+                                    value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseFloat(this.value)||0">
+                            </div>
+                            <div class="w-20">
+                                <label class="text-[10px] text-gray-400 font-bold uppercase">Medida</label>
+                                <select class="w-full border-b border-gray-300 text-sm py-1 bg-transparent" 
+                                    onchange="itemsTemporales[${index}].unidad=this.value">
+                                    <option value="unid" ${item.unidad === 'unid' ? 'selected' : ''}>Unid.</option>
+                                    <option value="kg" ${item.unidad === 'kg' ? 'selected' : ''}>Kg</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -373,8 +423,8 @@
 
         function guardarVerificados() {
             itemsTemporales.forEach(item => {
-                if(item.nombre.trim() !== '' && item.cantidad > 0) {
-                    inventario.push({ id: Date.now() + Math.random(), nombre: item.nombre, categoria: item.categoria, cantidad: item.cantidad, minimo: item.minimo });
+                if(item.nombre.trim() !== '') {
+                    inventario.push({ id: Date.now() + Math.random(), nombre: item.nombre, categoria: item.categoria, cantidad: item.cantidad, unidad: item.unidad || 'unid', minimo: item.minimo });
                 }
             });
             guardarDatos(true);
@@ -400,16 +450,15 @@
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
                                 <p class="font-bold text-gray-800 leading-tight">${item.nombre}</p>
-                                <p class="text-xs text-gray-500">${item.categoria || 'Alimento'} | Mínimo: ${item.minimo}</p>
+                                <p class="text-xs text-gray-500">${item.categoria || 'Alimento'} | Mín: ${item.minimo} ${item.unidad}</p>
                             </div>
                             <button onclick="abrirModal(${item.id})" class="text-gray-400 p-1 text-lg">✏️</button>
                         </div>
                         <div class="flex justify-between items-center mt-2 border-t pt-2 border-gray-100">
-                            <span class="text-sm font-semibold text-gray-600">Stock:</span>
+                            <span class="text-sm font-semibold text-gray-600">Stock: ${item.cantidad} ${item.unidad}</span>
                             <div class="flex items-center gap-1">
-                                <button onclick="modificarStock(${item.id}, -1)" class="w-8 h-8 rounded-full bg-gray-200 text-gray-800 font-bold flex items-center justify-center">-</button>
-                                <span class="w-8 text-center font-bold text-lg">${item.cantidad}</span>
-                                <button onclick="modificarStock(${item.id}, 1)" class="w-8 h-8 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center">+</button>
+                                <button onclick="modificarStock(${item.id}, ${item.unidad === 'kg' ? -0.5 : -1})" class="w-8 h-8 rounded-full bg-gray-200 text-gray-800 font-bold flex items-center justify-center">-</button>
+                                <button onclick="modificarStock(${item.id}, ${item.unidad === 'kg' ? 0.5 : 1})" class="w-8 h-8 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center">+</button>
                             </div>
                         </div>
                     </div>
@@ -423,8 +472,8 @@
                                 <p class="font-bold text-gray-800">${item.nombre} ${etiqueta}</p>
                             </div>
                             <div class="flex justify-between items-center">
-                                <p class="text-xs text-gray-500">Tenés: ${item.cantidad} (Min: ${item.minimo})</p>
-                                <button onclick="modificarStock(${item.id}, 1)" class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm">+1 Comprado</button>
+                                <p class="text-xs text-gray-500">Tenés: ${item.cantidad} ${item.unidad} (Min: ${item.minimo})</p>
+                                <button onclick="comprarCantidadCustom(${item.id})" class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm">🛒 Registrar Compra</button>
                             </div>
                         </div>
                     `;
@@ -432,7 +481,6 @@
             });
         }
         
-        // Cargar datos al iniciar
         window.onload = cargarDesdeNube;
     </script>
 </body>
