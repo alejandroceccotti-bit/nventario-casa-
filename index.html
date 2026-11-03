@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock de Casa V7.1 - Cloud Seguro</title>
+    <title>Stock de Casa V7.2 - Cloud Seguro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { -webkit-tap-highlight-color: transparent; }
@@ -16,15 +16,14 @@
 <body class="bg-gray-100 font-sans text-gray-800 h-screen flex flex-col">
     
     <script>
-        // CONFIGURACIÓN: Tu URL de Apps Script conectada
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyDxJ7bZFqY9zynADQBRv4vxUxXcRpQHtQXgfscDilmxR8k-MXGvXce0deDk7rs228d/exec";
         const TOKEN = "1424Losb_"; 
     </script>
 
     <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0">
-        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V7.1</h1>
+        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V7.2</h1>
         <div class="flex gap-2">
-            <button onclick="guardarDatos(true)" class="bg-blue-800 px-2 py-1 rounded text-xs shadow flex items-center gap-1">
+            <button onclick="cargarDesdeNube()" class="bg-blue-800 px-2 py-1 rounded text-xs shadow flex items-center gap-1">
                 ☁️ Sync
             </button>
             <button onclick="abrirModalTexto()" class="bg-green-500 px-2 py-1 rounded text-xs shadow flex items-center">
@@ -175,7 +174,7 @@
                 const data = await response.json();
                 if(data.inventario) {
                     inventario = data.inventario.map(i => ({
-                        id: i.id || Date.now() + Math.random(),
+                        id: Number(i.id) || Date.now() + Math.random(),
                         nombre: i.nombre || '',
                         categoria: i.categoria || 'Alimento',
                         cantidad: parseFloat(i.cantidad) || 0,
@@ -239,7 +238,7 @@
         }
 
         function modificarStock(id, monto) {
-            const item = inventario.find(i => i.id === id);
+            const item = inventario.find(i => Number(i.id) === Number(id));
             if (item) {
                 item.cantidad = Math.max(0, item.cantidad + monto);
                 guardarDatos(true);
@@ -247,7 +246,7 @@
         }
 
         function comprarCantidadCustom(id) {
-            const item = inventario.find(i => i.id === id);
+            const item = inventario.find(i => Number(i.id) === Number(id));
             if (!item) return;
             let cantidadAgregar = prompt(`¿Cuántos ${item.unidad === 'kg' ? 'kilos' : 'unidades'} de "${item.nombre}" compraste?`, "1");
             if (cantidadAgregar === null) return;
@@ -259,7 +258,7 @@
         }
 
         function abrirModal(id) {
-            const item = inventario.find(i => i.id === id);
+            const item = inventario.find(i => Number(i.id) === Number(id));
             if (!item) return;
             document.getElementById('edit-id').value = item.id;
             document.getElementById('edit-nombre').value = item.nombre;
@@ -273,8 +272,8 @@
         function cerrarModal() { document.getElementById('modal-editar').classList.add('hidden'); }
         
         function guardarEdicion() {
-            const id = parseInt(document.getElementById('edit-id').value);
-            const item = inventario.find(i => i.id === id);
+            const id = Number(document.getElementById('edit-id').value);
+            const item = inventario.find(i => Number(i.id) === id);
             if (item) {
                 item.nombre = document.getElementById('edit-nombre').value;
                 item.categoria = document.getElementById('edit-categoria').value;
@@ -287,10 +286,10 @@
         }
 
         function eliminarDesdeModal() {
-            const id = parseInt(document.getElementById('edit-id').value);
+            const id = Number(document.getElementById('edit-id').value);
             if (confirm("¿Seguro que quieres borrar este producto?")) {
-                inventario = inventario.filter(i => i.id !== id);
-                guardarDatos(true); // <-- CORREGIDO: Ahora sincroniza inmediatamente el borrado con la nube
+                inventario = inventario.filter(i => Number(i.id) !== id);
+                guardarDatos(true);
                 cerrarModal();
             }
         }
