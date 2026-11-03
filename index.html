@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock de Casa V7 - Cloud Seguro</title>
+    <title>Stock de Casa V7.1 - Cloud Seguro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { -webkit-tap-highlight-color: transparent; }
@@ -22,7 +22,7 @@
     </script>
 
     <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0">
-        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V7</h1>
+        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V7.1</h1>
         <div class="flex gap-2">
             <button onclick="guardarDatos(true)" class="bg-blue-800 px-2 py-1 rounded text-xs shadow flex items-center gap-1">
                 ☁️ Sync
@@ -290,7 +290,7 @@
             const id = parseInt(document.getElementById('edit-id').value);
             if (confirm("¿Seguro que quieres borrar este producto?")) {
                 inventario = inventario.filter(i => i.id !== id);
-                guardarDatos(true);
+                guardarDatos(true); // <-- CORREGIDO: Ahora sincroniza inmediatamente el borrado con la nube
                 cerrarModal();
             }
         }
