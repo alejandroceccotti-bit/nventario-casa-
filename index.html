@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock de Casa V5</title>
+    <title>Stock de Casa V6 - Cloud Seguro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { -webkit-tap-highlight-color: transparent; }
@@ -16,14 +16,17 @@
 <body class="bg-gray-100 font-sans text-gray-800 h-screen flex flex-col">
     
     <script>
-        const API_KEY = "AQ.Ab8RN6KKXUAthsi3QtTnC8iihcjzmaFQ4B0Rlo7jHl8BmroZDw";
-        const MODEL_NAME = "gemini-2.5-flash-lite";
+        // CONFIGURACIÓN: Pega aquí la URL que obtuviste en Apps Script (termina en /exec)
+        const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyDxJ7bZFqY9zynADQBRv4vxUxXcRpQHtQXgfscDilmxR8k-MXGvXce0deDk7rs228d/exec";
+        const TOKEN = "MiClaveSegura2026"; 
     </script>
 
     <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0">
         <h1 class="text-lg font-bold truncate">📦 Mi Inventario</h1>
         <div class="flex gap-2">
-            <button onclick="exportarJSON()" class="bg-blue-800 px-2 py-1 rounded text-xs shadow">💾 Guardar</button>
+            <button onclick="guardarDatos(true)" class="bg-blue-800 px-2 py-1 rounded text-xs shadow flex items-center gap-1">
+                ☁️ Sync
+            </button>
             <button onclick="abrirModalTexto()" class="bg-green-500 px-2 py-1 rounded text-xs shadow flex items-center">
                 📝 Texto
             </button>
@@ -79,6 +82,7 @@
         </div>
     </div>
 
+    <!-- Modales -->
     <div id="modal-editar" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div class="bg-white p-5 rounded-xl w-full max-w-sm shadow-xl">
             <h2 class="font-bold text-lg mb-4 border-b pb-2">✏️ Editar Producto</h2>
@@ -113,8 +117,8 @@
     <div id="modal-texto" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
         <div class="bg-white p-5 rounded-xl w-full max-w-sm shadow-xl flex flex-col h-2/3">
             <h2 class="font-bold text-lg mb-2">📝 Carga Masiva (Texto)</h2>
-            <p class="text-xs text-gray-500 mb-2">Escribe o pega una lista. La IA reconocerá los productos, los clasificará y calculará las cantidades.</p>
-            <textarea id="texto-masivo" class="w-full flex-1 border rounded-lg p-3 text-sm bg-gray-50 mb-4" placeholder="Ej: Compré 3 fideos, lavandina, 2 leches y papel higiénico..."></textarea>
+            <p class="text-xs text-gray-500 mb-2">Escribe o pega una lista.</p>
+            <textarea id="texto-masivo" class="w-full flex-1 border rounded-lg p-3 text-sm bg-gray-50 mb-4" placeholder="Ej: Compré 3 fideos y lavandina..."></textarea>
             <div class="flex justify-end gap-2">
                 <button onclick="cerrarModalTexto()" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancelar</button>
                 <button onclick="procesarTextoIA()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold shadow-md">Analizar Texto</button>
@@ -125,30 +129,63 @@
     <div id="modal-verificacion" class="hidden fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center p-4 z-50">
         <div class="bg-white p-4 rounded-xl w-full max-w-md shadow-xl max-h-full flex flex-col">
             <h2 class="font-bold text-lg mb-1">🤖 Revisión de IA</h2>
-            <p class="text-xs text-gray-500 mb-3">Revisa, corrige o borra lo que detectó la IA antes de agregarlo al stock definitivo.</p>
-            
-            <div id="lista-verificacion" class="flex-1 overflow-y-auto space-y-3 p-1 mb-4 border border-gray-200 rounded bg-gray-50">
-            </div>
-
+            <p class="text-xs text-gray-500 mb-3">Revisa, corrige o borra lo que detectó la IA.</p>
+            <div id="lista-verificacion" class="flex-1 overflow-y-auto space-y-3 p-1 mb-4 border border-gray-200 rounded bg-gray-50"></div>
             <div class="flex justify-between items-center shrink-0">
-                <button onclick="cerrarModalVerificacion()" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-bold">Descartar Todo</button>
-                <button onclick="guardarVerificados()" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-md">Confirmar y Agregar</button>
+                <button onclick="cerrarModalVerificacion()" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-bold">Descartar</button>
+                <button onclick="guardarVerificados()" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-md">Confirmar</button>
             </div>
         </div>
     </div>
 
     <div id="modal-loading" class="hidden fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-[60]">
         <div class="loader mb-4"></div>
-        <p class="text-white font-bold text-lg">Procesando con Gemini...</p>
-        <p class="text-gray-300 text-sm mt-2 text-center px-4">Detectando productos y cantidades, por favor espera.</p>
+        <p id="loading-text" class="text-white font-bold text-lg">Procesando...</p>
     </div>
 
     <script>
-        let inventario = JSON.parse(localStorage.getItem('hogar_stock')) || [];
+        let inventario = [];
 
-        function guardarDatos() {
+        async function cargarDesdeNube() {
+            mostrarLoading(true, "Descargando inventario...");
+            try {
+                const response = await fetch(URL_APPS_SCRIPT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ token: TOKEN, accion: 'leer' })
+                });
+                const data = await response.json();
+                if(data.inventario) {
+                    inventario = data.inventario;
+                    renderizar();
+                } else if(data.error) {
+                    throw new Error(data.error);
+                }
+            } catch(e) {
+                console.error("Error al cargar la nube:", e);
+                inventario = JSON.parse(localStorage.getItem('hogar_stock')) || [];
+                renderizar();
+            } finally {
+                mostrarLoading(false);
+            }
+        }
+
+        async function guardarDatos(forzarSync = false) {
             localStorage.setItem('hogar_stock', JSON.stringify(inventario));
             renderizar();
+            
+            if(forzarSync) mostrarLoading(true, "Guardando en la Nube...");
+            try {
+                await fetch(URL_APPS_SCRIPT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ token: TOKEN, accion: 'guardar', inventario: inventario })
+                });
+            } catch(e) {
+                console.error("No se pudo sincronizar en este momento.");
+            } finally {
+                if(forzarSync) mostrarLoading(false);
+            }
         }
 
         function cambiarTab(tab) {
@@ -160,32 +197,25 @@
 
         function agregarProducto(e, origen) {
             e.preventDefault();
-            let nombre, categoria, cantidad, minimo;
-            if (origen === 'stock') {
-                nombre = document.getElementById('nombre-stock').value;
-                categoria = document.getElementById('categoria-stock').value;
-                cantidad = parseInt(document.getElementById('cant-stock').value);
-                minimo = parseInt(document.getElementById('min-stock').value);
-                document.getElementById('form-add-stock').reset();
+            let nombre = document.getElementById(origen === 'stock' ? 'nombre-stock' : 'nombre-compra').value;
+            let categoria = origen === 'stock' ? document.getElementById('categoria-stock').value : "Alimento";
+            let cantidad = origen === 'stock' ? parseInt(document.getElementById('cant-stock').value) : 0;
+            let minimo = origen === 'stock' ? parseInt(document.getElementById('min-stock').value) : 1;
+            
+            inventario.push({ id: Date.now(), nombre, categoria, cantidad, minimo });
+            document.getElementById(`form-add-${origen}`).reset();
+            if(origen === 'stock') {
                 document.getElementById('cant-stock').value = 1;
                 document.getElementById('min-stock').value = 1;
-            } else {
-                nombre = document.getElementById('nombre-compra').value;
-                categoria = "Alimento";
-                cantidad = 0;
-                minimo = 1;
-                document.getElementById('form-add-compra').reset();
             }
-            inventario.push({ id: Date.now(), nombre, categoria, cantidad, minimo });
-            guardarDatos();
+            guardarDatos(true);
         }
 
         function modificarStock(id, monto) {
             const item = inventario.find(i => i.id === id);
             if (item) {
-                item.cantidad += monto;
-                if (item.cantidad < 0) item.cantidad = 0;
-                guardarDatos();
+                item.cantidad = Math.max(0, item.cantidad + monto);
+                guardarDatos(true);
             }
         }
 
@@ -210,7 +240,7 @@
                 item.categoria = document.getElementById('edit-categoria').value;
                 item.cantidad = parseInt(document.getElementById('edit-cantidad').value);
                 item.minimo = parseInt(document.getElementById('edit-minimo').value);
-                guardarDatos();
+                guardarDatos(true);
                 cerrarModal();
             }
         }
@@ -219,28 +249,19 @@
             const id = parseInt(document.getElementById('edit-id').value);
             if (confirm("¿Seguro que quieres borrar este producto?")) {
                 inventario = inventario.filter(i => i.id !== id);
-                guardarDatos();
+                guardarDatos(true);
                 cerrarModal();
             }
-        }
-
-        function exportarJSON() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(inventario));
-            const btn = document.createElement('a');
-            btn.setAttribute("href", dataStr);
-            btn.setAttribute("download", "Mi_Inventario.json");
-            btn.click();
         }
 
         function abrirModalTexto() {
             document.getElementById('texto-masivo').value = '';
             document.getElementById('modal-texto').classList.remove('hidden');
         }
-        function cerrarModalTexto() {
-            document.getElementById('modal-texto').classList.add('hidden');
-        }
+        function cerrarModalTexto() { document.getElementById('modal-texto').classList.add('hidden'); }
 
-        function mostrarLoading(estado) {
+        function mostrarLoading(estado, texto = "Procesando...") {
+            document.getElementById('loading-text').innerText = texto;
             if (estado) document.getElementById('modal-loading').classList.remove('hidden');
             else document.getElementById('modal-loading').classList.add('hidden');
         }
@@ -248,14 +269,13 @@
         function procesarImagenIA(input) {
             const file = input.files[0];
             if (!file) return;
-            
             const reader = new FileReader();
             reader.onload = function(e) {
                 const base64Data = e.target.result.split(',')[1];
                 llamarGemini('imagen', base64Data);
             };
             reader.readAsDataURL(file);
-            input.value = ''; // Reset
+            input.value = '';
         }
 
         function procesarTextoIA() {
@@ -266,72 +286,37 @@
         }
 
         async function llamarGemini(tipo, contenido) {
-            mostrarLoading(true);
+            mostrarLoading(true, "Analizando con IA en la Nube...");
             try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
-                
-                let promptStricto = "Actúa como un asistente de inventario. Devuelve ÚNICAMENTE un arreglo JSON válido (comenzando con '[' y terminando con ']'). No incluyas texto extra, ni formato markdown. Estructura requerida: [{'nombre': 'string limpio', 'categoria': 'Alimento' o 'Limpieza', 'cantidad': numero entero}]. ";
-                
-                let body = {};
-
-                if (tipo === 'imagen') {
-                    body = {
-                        contents: [{
-                            parts: [
-                                {text: promptStricto + "Analiza esta imagen, identifica los productos de hogar/alacena/heladera, estima la cantidad visible de cada uno y clasifícalos en Alimento o Limpieza."},
-                                {inlineData: {mimeType: "image/jpeg", data: contenido}}
-                            ]
-                        }]
-                    };
-                } else {
-                    body = {
-                        contents: [{
-                            parts: [
-                                {text: promptStricto + "Extrae todos los productos mencionados en este texto, asigna su cantidad deducida (si no dice, asume 1) y clasifícalos: '" + contenido + "'"}
-                            ]
-                        }]
-                    };
-                }
-
-                const response = await fetch(url, {
+                const body = {
+                    token: TOKEN,
+                    accion: tipo === 'imagen' ? 'gemini_imagen' : 'gemini_texto',
+                    contenido: contenido
+                };
+                const response = await fetch(URL_APPS_SCRIPT, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(body)
                 });
-
-                const rawData = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(rawData.error?.message || "Error desconocido en la API.");
-                }
-
-                let textoRespuesta = rawData.candidates[0].content.parts[0].text;
+                const data = await response.json();
                 
-                textoRespuesta = textoRespuesta.replace(/'/g, '"').replace(/```json/gi, '').replace(/```/g, '').trim();
+                if (data.error) throw new Error(data.error);
                 
-                let productosDetectados = JSON.parse(textoRespuesta);
-                
+                let productosDetectados = data.resultado;
                 if (!Array.isArray(productosDetectados)) {
                     const keys = Object.keys(productosDetectados);
-                    if(keys.length > 0 && Array.isArray(productosDetectados[keys[0]])) {
-                        productosDetectados = productosDetectados[keys[0]];
-                    } else {
-                        throw new Error("El formato devuelto por la IA no fue un arreglo válido.");
-                    }
+                    productosDetectados = productosDetectados[keys[0]];
                 }
-
                 mostrarPanelVerificacion(productosDetectados);
 
             } catch (error) {
-                alert("Hubo un error al procesar con IA: " + error.message);
-                console.error(error);
+                alert("Error de IA: " + error.message);
             } finally {
                 mostrarLoading(false);
             }
         }
 
         let itemsTemporales = [];
-
         function mostrarPanelVerificacion(productos) {
             itemsTemporales = productos.map((p, index) => ({
                 id_temp: 'temp_' + index,
@@ -340,7 +325,6 @@
                 cantidad: parseInt(p.cantidad) || 1,
                 minimo: 1
             }));
-
             dibujarListaVerificacion();
             document.getElementById('modal-verificacion').classList.remove('hidden');
         }
@@ -348,12 +332,6 @@
         function dibujarListaVerificacion() {
             const container = document.getElementById('lista-verificacion');
             container.innerHTML = '';
-            
-            if (itemsTemporales.length === 0) {
-                container.innerHTML = '<p class="text-center text-sm text-gray-500 py-4">No hay elementos en la lista.</p>';
-                return;
-            }
-
             itemsTemporales.forEach((item, index) => {
                 container.innerHTML += `
                     <div class="bg-white p-2 border-b flex flex-col gap-2 relative">
@@ -361,13 +339,13 @@
                         <div class="pr-8">
                             <label class="text-[10px] text-gray-400 font-bold uppercase">Producto</label>
                             <input type="text" class="w-full border-b border-gray-300 text-sm py-1 font-semibold text-gray-700 bg-transparent" 
-                                value="${item.nombre}" onchange="actualizarItemTemporal(${index}, 'nombre', this.value)">
+                                value="${item.nombre}" onchange="itemsTemporales[${index}].nombre=this.value">
                         </div>
                         <div class="flex gap-2 items-end">
                             <div class="flex-1">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase">Categoría</label>
                                 <select class="w-full border-b border-gray-300 text-sm py-1 bg-transparent" 
-                                    onchange="actualizarItemTemporal(${index}, 'categoria', this.value)">
+                                    onchange="itemsTemporales[${index}].categoria=this.value">
                                     <option value="Alimento" ${item.categoria === 'Alimento' ? 'selected' : ''}>Alimento</option>
                                     <option value="Limpieza" ${item.categoria === 'Limpieza' ? 'selected' : ''}>Limpieza</option>
                                 </select>
@@ -375,17 +353,12 @@
                             <div class="w-20">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase">Cant.</label>
                                 <input type="number" min="1" class="w-full border-b border-gray-300 text-sm py-1 text-center bg-transparent" 
-                                    value="${item.cantidad}" onchange="actualizarItemTemporal(${index}, 'cantidad', this.value)">
+                                    value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseInt(this.value)||0">
                             </div>
                         </div>
                     </div>
                 `;
             });
-        }
-
-        function actualizarItemTemporal(index, campo, valor) {
-            if (campo === 'cantidad') itemsTemporales[index][campo] = parseInt(valor) || 0;
-            else itemsTemporales[index][campo] = valor;
         }
 
         function eliminarItemTemporal(index) {
@@ -401,16 +374,10 @@
         function guardarVerificados() {
             itemsTemporales.forEach(item => {
                 if(item.nombre.trim() !== '' && item.cantidad > 0) {
-                    inventario.push({
-                        id: Date.now() + Math.random(),
-                        nombre: item.nombre,
-                        categoria: item.categoria,
-                        cantidad: item.cantidad,
-                        minimo: item.minimo
-                    });
+                    inventario.push({ id: Date.now() + Math.random(), nombre: item.nombre, categoria: item.categoria, cantidad: item.cantidad, minimo: item.minimo });
                 }
             });
-            guardarDatos();
+            guardarDatos(true);
             cerrarModalVerificacion();
             cambiarTab('stock');
         }
@@ -420,17 +387,13 @@
             const listaCompras = document.getElementById('lista-compras');
             listaStock.innerHTML = '';
             listaCompras.innerHTML = '';
-
             const invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
             invOrdenado.forEach(item => {
                 const enFalta = item.cantidad <= item.minimo;
                 const agotado = item.cantidad === 0;
-
-                let borderClass = "border-green-500";
-                let bgClass = "bg-white";
-                if (agotado) { borderClass = "border-red-500"; bgClass = "bg-red-50"; }
-                else if (enFalta) { borderClass = "border-yellow-500"; bgClass = "bg-yellow-50"; }
+                let borderClass = agotado ? "border-red-500" : (enFalta ? "border-yellow-500" : "border-green-500");
+                let bgClass = agotado ? "bg-red-50" : (enFalta ? "bg-yellow-50" : "bg-white");
 
                 listaStock.innerHTML += `
                     <div class="flex flex-col border-l-4 p-3 rounded-lg shadow-sm mb-2 ${borderClass} ${bgClass}">
@@ -444,9 +407,9 @@
                         <div class="flex justify-between items-center mt-2 border-t pt-2 border-gray-100">
                             <span class="text-sm font-semibold text-gray-600">Stock:</span>
                             <div class="flex items-center gap-1">
-                                <button onclick="modificarStock(${item.id}, -1)" class="w-8 h-8 rounded-full bg-gray-200 text-gray-800 font-bold flex items-center justify-center shadow-sm">-</button>
+                                <button onclick="modificarStock(${item.id}, -1)" class="w-8 h-8 rounded-full bg-gray-200 text-gray-800 font-bold flex items-center justify-center">-</button>
                                 <span class="w-8 text-center font-bold text-lg">${item.cantidad}</span>
-                                <button onclick="modificarStock(${item.id}, 1)" class="w-8 h-8 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center shadow-sm">+</button>
+                                <button onclick="modificarStock(${item.id}, 1)" class="w-8 h-8 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center">+</button>
                             </div>
                         </div>
                     </div>
@@ -458,7 +421,6 @@
                         <div class="flex flex-col border p-3 rounded-lg shadow-sm bg-white mb-2 border-gray-200">
                             <div class="flex justify-between items-center mb-2">
                                 <p class="font-bold text-gray-800">${item.nombre} ${etiqueta}</p>
-                                <button onclick="abrirModal(${item.id})" class="text-gray-400 text-sm">✏️</button>
                             </div>
                             <div class="flex justify-between items-center">
                                 <p class="text-xs text-gray-500">Tenés: ${item.cantidad} (Min: ${item.minimo})</p>
@@ -468,18 +430,10 @@
                     `;
                 }
             });
-
-            if (listaCompras.innerHTML === '') {
-                listaCompras.innerHTML = `
-                    <div class="text-center p-6 text-gray-400 bg-white rounded-lg border border-dashed">
-                        <p class="text-2xl mb-2">🎉</p>
-                        <p class="text-sm">Todo está en orden.</p>
-                        <p class="text-xs">No hay productos agotados ni por debajo del mínimo.</p>
-                    </div>`;
-            }
         }
-
-        renderizar();
+        
+        // Cargar datos al iniciar
+        window.onload = cargarDesdeNube;
     </script>
 </body>
 </html>
