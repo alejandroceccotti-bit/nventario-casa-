@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock de Casa V7.2 - Cloud Seguro</title>
+    <title>Stock de Casa V7.3 - Cloud Seguro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { -webkit-tap-highlight-color: transparent; }
@@ -16,13 +16,17 @@
 <body class="bg-gray-100 font-sans text-gray-800 h-screen flex flex-col">
     
     <script>
+        // CONFIGURACIÓN: Ya integrada con tus credenciales
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyDxJ7bZFqY9zynADQBRv4vxUxXcRpQHtQXgfscDilmxR8k-MXGvXce0deDk7rs228d/exec";
         const TOKEN = "1424Losb_"; 
     </script>
 
-    <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0">
-        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V7.2</h1>
+    <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0 z-10 relative">
+        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V7.3</h1>
         <div class="flex gap-2">
+            <button onclick="toggleBuscador()" class="bg-blue-400 px-2 py-1 rounded text-xs shadow flex items-center justify-center">
+                🔍
+            </button>
             <button onclick="cargarDesdeNube()" class="bg-blue-800 px-2 py-1 rounded text-xs shadow flex items-center gap-1">
                 ☁️ Sync
             </button>
@@ -30,9 +34,17 @@
                 📝 Texto
             </button>
             <label class="bg-purple-500 px-2 py-1 rounded text-xs shadow cursor-pointer flex items-center">
-                📷 Escanear
+                📷
                 <input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarImagenIA(this)">
             </label>
+        </div>
+    </div>
+
+    <!-- Buscador Flotante -->
+    <div id="contenedor-buscador" class="hidden bg-blue-700 p-2 shrink-0 transition-all duration-300 shadow-md">
+        <div class="relative">
+            <input type="text" id="input-buscador" oninput="renderizar()" placeholder="Buscar producto o categoría..." class="w-full border-none rounded-lg pl-3 pr-8 py-2 text-sm text-gray-800 focus:outline-none shadow-inner">
+            <button onclick="toggleBuscador()" class="absolute right-2 top-1.5 text-gray-400 font-bold text-lg leading-none">&times;</button>
         </div>
     </div>
 
@@ -217,6 +229,17 @@
             document.getElementById('sec-lista').style.display = tab === 'lista' ? 'block' : 'none';
             document.getElementById('tab-stock').className = tab === 'stock' ? 'flex-1 py-3 text-center tab-active' : 'flex-1 py-3 text-center tab-inactive bg-gray-50';
             document.getElementById('tab-lista').className = tab === 'lista' ? 'flex-1 py-3 text-center tab-active' : 'flex-1 py-3 text-center tab-inactive bg-gray-50';
+        }
+
+        function toggleBuscador() {
+            const buscador = document.getElementById('contenedor-buscador');
+            buscador.classList.toggle('hidden');
+            if (!buscador.classList.contains('hidden')) {
+                document.getElementById('input-buscador').focus();
+            } else {
+                document.getElementById('input-buscador').value = '';
+                renderizar();
+            }
         }
 
         function agregarProducto(e, origen) {
@@ -434,11 +457,21 @@
         function renderizar() {
             const listaStock = document.getElementById('lista-stock');
             const listaCompras = document.getElementById('lista-compras');
+            
+            // Obtener el término de búsqueda
+            const inputBuscador = document.getElementById('input-buscador');
+            const termino = inputBuscador ? inputBuscador.value.toLowerCase() : '';
+            
             listaStock.innerHTML = '';
             listaCompras.innerHTML = '';
             const invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
             invOrdenado.forEach(item => {
+                // Aplicar el filtro de búsqueda
+                if (termino && !item.nombre.toLowerCase().includes(termino) && !item.categoria.toLowerCase().includes(termino)) {
+                    return; // Si no coincide con el nombre o categoría, se salta este producto
+                }
+
                 const enFalta = item.cantidad <= item.minimo;
                 const agotado = item.cantidad === 0;
                 let borderClass = agotado ? "border-red-500" : (enFalta ? "border-yellow-500" : "border-green-500");
