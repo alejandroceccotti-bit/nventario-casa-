@@ -3,7 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock de Casa V7.5 - Cloud Seguro</title>
+    <title>Stock de Casa V7.6 - App Nativa</title>
+    
+    <!-- Configuración PWA (App Nativa) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { -webkit-tap-highlight-color: transparent; }
@@ -21,17 +28,11 @@
     </script>
 
     <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0 z-10 relative">
-        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V7.5</h1>
+        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V7.6</h1>
         <div class="flex gap-2">
-            <button onclick="toggleBuscador()" class="bg-blue-400 px-2 py-1 rounded text-xs shadow flex items-center justify-center">
-                🔍
-            </button>
-            <button onclick="cargarDesdeNube()" class="bg-blue-800 px-2 py-1 rounded text-xs shadow flex items-center gap-1">
-                ☁️ Sync
-            </button>
-            <button onclick="abrirModalTexto()" class="bg-green-500 px-2 py-1 rounded text-xs shadow flex items-center">
-                📝 Texto
-            </button>
+            <button onclick="toggleBuscador()" class="bg-blue-400 px-2 py-1 rounded text-xs shadow flex items-center justify-center">🔍</button>
+            <button onclick="cargarDesdeNube()" class="bg-blue-800 px-2 py-1 rounded text-xs shadow flex items-center gap-1">☁️ Sync</button>
+            <button onclick="abrirModalTexto()" class="bg-green-500 px-2 py-1 rounded text-xs shadow flex items-center">📝 Texto</button>
             <label class="bg-purple-500 px-2 py-1 rounded text-xs shadow cursor-pointer flex items-center">
                 📷
                 <input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarImagenIA(this)">
@@ -54,11 +55,9 @@
 
     <div class="flex-1 overflow-y-auto p-3">
         <div id="sec-stock" class="block">
-            <!-- Botón Desplegable para Carga Manual -->
             <button type="button" onclick="document.getElementById('contenedor-form-stock').classList.toggle('hidden')" class="w-full mb-3 bg-white text-blue-600 border border-blue-200 py-2 rounded-lg font-bold shadow-sm flex justify-center items-center gap-2">
                 ➕ Cargar Producto Manualmente
             </button>
-            
             <div id="contenedor-form-stock" class="hidden">
                 <form id="form-add-stock" class="mb-4 bg-white p-3 rounded-lg shadow-sm border-l-4 border-blue-500" onsubmit="agregarProducto(event, 'stock')">
                     <div class="flex gap-2 mb-2">
@@ -92,11 +91,9 @@
         </div>
 
         <div id="sec-lista" class="hidden">
-             <!-- Botón Desplegable para Carga a Lista -->
              <button type="button" onclick="document.getElementById('contenedor-form-compra').classList.toggle('hidden')" class="w-full mb-3 bg-white text-blue-600 border border-blue-200 py-2 rounded-lg font-bold shadow-sm flex justify-center items-center gap-2">
                 ➕ Agregar Faltante Manualmente
             </button>
-            
             <div id="contenedor-form-compra" class="hidden">
                 <form id="form-add-compra" class="mb-4 bg-white p-3 rounded-lg shadow-sm border-l-4 border-blue-500" onsubmit="agregarProducto(event, 'compra')">
                     <div class="flex gap-2 mb-2">
@@ -158,7 +155,7 @@
         <div class="bg-white p-5 rounded-xl w-full max-w-sm shadow-xl flex flex-col h-2/3">
             <h2 class="font-bold text-lg mb-2">📝 Carga Masiva (Texto)</h2>
             <p class="text-xs text-gray-500 mb-2">Escribe o pega una lista de WhatsApp.</p>
-            <textarea id="texto-masivo" class="w-full flex-1 border rounded-lg p-3 text-sm bg-gray-50 mb-4" placeholder="Ej: Comprar 1.5 kg de tomates, pan y lavandina..."></textarea>
+            <textarea id="texto-masivo" class="w-full flex-1 border rounded-lg p-3 text-sm bg-gray-50 mb-4" placeholder="Ej: Comprar 1.5 kg de tomates..."></textarea>
             <div class="flex justify-end gap-2">
                 <button onclick="cerrarModalTexto()" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancelar</button>
                 <button onclick="procesarTextoIA()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold shadow-md">Analizar Texto</button>
@@ -189,50 +186,28 @@
         async function cargarDesdeNube() {
             mostrarLoading(true, "Descargando inventario...");
             try {
-                const response = await fetch(URL_APPS_SCRIPT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ token: TOKEN, accion: 'leer' })
-                });
+                const response = await fetch(URL_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ token: TOKEN, accion: 'leer' }) });
                 const data = await response.json();
                 if(data.inventario) {
-                    inventario = data.inventario.map(i => ({
-                        id: Number(i.id) || Date.now() + Math.random(),
-                        nombre: i.nombre || '',
-                        categoria: i.categoria || 'Alimento',
-                        cantidad: parseFloat(i.cantidad) || 0,
-                        unidad: i.unidad || 'unid',
-                        minimo: parseFloat(i.minimo) || 1
-                    }));
+                    inventario = data.inventario.map(i => ({ id: Number(i.id) || Date.now() + Math.random(), nombre: i.nombre || '', categoria: i.categoria || 'Alimento', cantidad: parseFloat(i.cantidad) || 0, unidad: i.unidad || 'unid', minimo: parseFloat(i.minimo) || 1 }));
                     renderizar();
-                } else if(data.error) {
-                    throw new Error(data.error);
-                }
+                } else if(data.error) throw new Error(data.error);
             } catch(e) {
                 console.error("Error al cargar la nube:", e);
                 inventario = JSON.parse(localStorage.getItem('hogar_stock')) || [];
                 renderizar();
-            } finally {
-                mostrarLoading(false);
-            }
+            } finally { mostrarLoading(false); }
         }
 
         async function guardarDatos(forzarSync = false) {
             localStorage.setItem('hogar_stock', JSON.stringify(inventario));
             renderizar();
-            
             if(forzarSync) mostrarLoading(true, "Guardando en la Nube...");
             try {
-                await fetch(URL_APPS_SCRIPT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ token: TOKEN, accion: 'guardar', inventario: inventario })
-                });
+                await fetch(URL_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ token: TOKEN, accion: 'guardar', inventario: inventario }) });
             } catch(e) {
-                console.error("No se pudo sincronizar en este momento.");
-            } finally {
-                if(forzarSync) mostrarLoading(false);
-            }
+                console.error("No se pudo sincronizar.");
+            } finally { if(forzarSync) mostrarLoading(false); }
         }
 
         function cambiarTab(tab) {
@@ -245,12 +220,8 @@
         function toggleBuscador() {
             const buscador = document.getElementById('contenedor-buscador');
             buscador.classList.toggle('hidden');
-            if (!buscador.classList.contains('hidden')) {
-                document.getElementById('input-buscador').focus();
-            } else {
-                document.getElementById('input-buscador').value = '';
-                renderizar();
-            }
+            if (!buscador.classList.contains('hidden')) document.getElementById('input-buscador').focus();
+            else { document.getElementById('input-buscador').value = ''; renderizar(); }
         }
 
         function agregarProducto(e, origen) {
@@ -263,22 +234,14 @@
             
             inventario.push({ id: Date.now(), nombre, categoria, cantidad, unidad, minimo });
             document.getElementById(`form-add-${origen}`).reset();
-            if(origen === 'stock') {
-                document.getElementById('cant-stock').value = 1;
-                document.getElementById('min-stock').value = 1;
-                document.getElementById('unidad-stock').value = 'unid';
-            }
-            
+            if(origen === 'stock') { document.getElementById('cant-stock').value = 1; document.getElementById('min-stock').value = 1; document.getElementById('unidad-stock').value = 'unid'; }
             document.getElementById(`contenedor-form-${origen}`).classList.add('hidden');
             guardarDatos(true);
         }
 
         function modificarStock(id, monto) {
             const item = inventario.find(i => Number(i.id) === Number(id));
-            if (item) {
-                item.cantidad = Math.max(0, item.cantidad + monto);
-                guardarDatos(true);
-            }
+            if (item) { item.cantidad = Math.max(0, item.cantidad + monto); guardarDatos(true); }
         }
 
         function comprarCantidadCustom(id) {
@@ -287,10 +250,7 @@
             let cantidadAgregar = prompt(`¿Cuántos ${item.unidad === 'kg' ? 'kilos' : 'unidades'} de "${item.nombre}" compraste?`, "1");
             if (cantidadAgregar === null) return;
             let num = parseFloat(cantidadAgregar);
-            if (!isNaN(num) && num > 0) {
-                item.cantidad += num;
-                guardarDatos(true);
-            }
+            if (!isNaN(num) && num > 0) { item.cantidad += num; guardarDatos(true); }
         }
 
         function abrirModal(id) {
@@ -316,8 +276,7 @@
                 item.cantidad = parseFloat(document.getElementById('edit-cantidad').value) || 0;
                 item.unidad = document.getElementById('edit-unidad').value;
                 item.minimo = parseFloat(document.getElementById('edit-minimo').value) || 1;
-                guardarDatos(true);
-                cerrarModal();
+                guardarDatos(true); cerrarModal();
             }
         }
 
@@ -325,8 +284,7 @@
             const id = Number(document.getElementById('edit-id').value);
             if (confirm("¿Seguro que quieres borrar este producto?")) {
                 inventario = inventario.filter(i => Number(i.id) !== id);
-                guardarDatos(true);
-                cerrarModal();
+                guardarDatos(true); cerrarModal();
             }
         }
 
@@ -342,13 +300,43 @@
             else document.getElementById('modal-loading').classList.add('hidden');
         }
 
+        // ==========================================
+        // NUEVA FUNCIÓN DE COMPRESIÓN DE IMÁGENES
+        // ==========================================
         function procesarImagenIA(input) {
             const file = input.files[0];
             if (!file) return;
+            
+            mostrarLoading(true, "Comprimiendo foto...");
+            
             const reader = new FileReader();
             reader.onload = function(e) {
-                const base64Data = e.target.result.split(',')[1];
-                llamarGemini('imagen', base64Data);
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // Reducimos tamaño máximo
+                    const MAX_HEIGHT = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                    } else {
+                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Comprime a JPEG con calidad 0.7 (70%) para enviar algo super liviano
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    const base64Data = dataUrl.split(',')[1];
+                    
+                    llamarGemini('imagen', base64Data);
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
             input.value = '';
@@ -357,53 +345,31 @@
         function procesarTextoIA() {
             const texto = document.getElementById('texto-masivo').value.trim();
             if (!texto) return alert("Escribe algo primero.");
-            cerrarModalTexto();
-            llamarGemini('texto', texto);
+            cerrarModalTexto(); llamarGemini('texto', texto);
         }
 
         async function llamarGemini(tipo, contenido) {
             mostrarLoading(true, "Analizando con IA en la Nube...");
             try {
-                const body = {
-                    token: TOKEN,
-                    accion: tipo === 'imagen' ? 'gemini_imagen' : 'gemini_texto',
-                    contenido: contenido
-                };
-                const response = await fetch(URL_APPS_SCRIPT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(body)
-                });
+                const body = { token: TOKEN, accion: tipo === 'imagen' ? 'gemini_imagen' : 'gemini_texto', contenido: contenido };
+                const response = await fetch(URL_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
                 const data = await response.json();
                 
                 if (data.error) throw new Error(data.error);
-                
                 let productosDetectados = data.resultado;
                 if (!Array.isArray(productosDetectados)) {
                     const keys = Object.keys(productosDetectados);
                     productosDetectados = productosDetectados[keys[0]];
                 }
                 mostrarPanelVerificacion(productosDetectados);
-
-            } catch (error) {
-                alert("Error de IA: " + error.message);
-            } finally {
-                mostrarLoading(false);
-            }
+            } catch (error) { alert("Error de IA: " + error.message); } 
+            finally { mostrarLoading(false); }
         }
 
         let itemsTemporales = [];
         function mostrarPanelVerificacion(productos) {
-            itemsTemporales = productos.map((p, index) => ({
-                id_temp: 'temp_' + index,
-                nombre: p.nombre || 'Desconocido',
-                categoria: p.categoria === 'Limpieza' ? 'Limpieza' : 'Alimento',
-                cantidad: parseFloat(p.cantidad) || 0,
-                unidad: p.unidad || 'unid',
-                minimo: 1
-            }));
-            dibujarListaVerificacion();
-            document.getElementById('modal-verificacion').classList.remove('hidden');
+            itemsTemporales = productos.map((p, index) => ({ id_temp: 'temp_' + index, nombre: p.nombre || 'Desconocido', categoria: p.categoria === 'Limpieza' ? 'Limpieza' : 'Alimento', cantidad: parseFloat(p.cantidad) || 0, unidad: p.unidad || 'unid', minimo: 1 }));
+            dibujarListaVerificacion(); document.getElementById('modal-verificacion').classList.remove('hidden');
         }
 
         function dibujarListaVerificacion() {
@@ -415,27 +381,23 @@
                         <button onclick="eliminarItemTemporal(${index})" class="absolute top-2 right-2 text-red-500 bg-red-50 rounded px-2">X</button>
                         <div class="pr-8">
                             <label class="text-[10px] text-gray-400 font-bold uppercase">Producto</label>
-                            <input type="text" class="w-full border-b border-gray-300 text-sm py-1 font-semibold text-gray-700 bg-transparent" 
-                                value="${item.nombre}" onchange="itemsTemporales[${index}].nombre=this.value">
+                            <input type="text" class="w-full border-b border-gray-300 text-sm py-1 font-semibold text-gray-700 bg-transparent" value="${item.nombre}" onchange="itemsTemporales[${index}].nombre=this.value">
                         </div>
                         <div class="flex gap-2 items-end">
                             <div class="flex-1">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase">Categoría</label>
-                                <select class="w-full border-b border-gray-300 text-sm py-1 bg-transparent" 
-                                    onchange="itemsTemporales[${index}].categoria=this.value">
+                                <select class="w-full border-b border-gray-300 text-sm py-1 bg-transparent" onchange="itemsTemporales[${index}].categoria=this.value">
                                     <option value="Alimento" ${item.categoria === 'Alimento' ? 'selected' : ''}>Alimento</option>
                                     <option value="Limpieza" ${item.categoria === 'Limpieza' ? 'selected' : ''}>Limpieza</option>
                                 </select>
                             </div>
                             <div class="w-20">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase">Cant.</label>
-                                <input type="number" step="any" class="w-full border-b border-gray-300 text-sm py-1 text-center bg-transparent" 
-                                    value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseFloat(this.value)||0">
+                                <input type="number" step="any" class="w-full border-b border-gray-300 text-sm py-1 text-center bg-transparent" value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseFloat(this.value)||0">
                             </div>
                             <div class="w-20">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase">Medida</label>
-                                <select class="w-full border-b border-gray-300 text-sm py-1 bg-transparent" 
-                                    onchange="itemsTemporales[${index}].unidad=this.value">
+                                <select class="w-full border-b border-gray-300 text-sm py-1 bg-transparent" onchange="itemsTemporales[${index}].unidad=this.value">
                                     <option value="unid" ${item.unidad === 'unid' ? 'selected' : ''}>Unid.</option>
                                     <option value="kg" ${item.unidad === 'kg' ? 'selected' : ''}>Kg</option>
                                 </select>
@@ -446,51 +408,24 @@
             });
         }
 
-        function eliminarItemTemporal(index) {
-            itemsTemporales.splice(index, 1);
-            dibujarListaVerificacion();
-        }
-
-        function cerrarModalVerificacion() {
-            itemsTemporales = [];
-            document.getElementById('modal-verificacion').classList.add('hidden');
-        }
-
+        function eliminarItemTemporal(index) { itemsTemporales.splice(index, 1); dibujarListaVerificacion(); }
+        function cerrarModalVerificacion() { itemsTemporales = []; document.getElementById('modal-verificacion').classList.add('hidden'); }
         function guardarVerificados() {
-            itemsTemporales.forEach(item => {
-                if(item.nombre.trim() !== '') {
-                    inventario.push({ id: Date.now() + Math.random(), nombre: item.nombre, categoria: item.categoria, cantidad: item.cantidad, unidad: item.unidad || 'unid', minimo: item.minimo });
-                }
-            });
-            guardarDatos(true);
-            cerrarModalVerificacion();
-            cambiarTab('stock');
+            itemsTemporales.forEach(item => { if(item.nombre.trim() !== '') inventario.push({ id: Date.now() + Math.random(), nombre: item.nombre, categoria: item.categoria, cantidad: item.cantidad, unidad: item.unidad || 'unid', minimo: item.minimo }); });
+            guardarDatos(true); cerrarModalVerificacion(); cambiarTab('stock');
         }
 
         function renderizar() {
             const listaStock = document.getElementById('lista-stock');
             const listaCompras = document.getElementById('lista-compras');
-            
             const inputBuscador = document.getElementById('input-buscador');
             const termino = inputBuscador ? inputBuscador.value.toLowerCase() : '';
             
-            listaStock.innerHTML = '';
-            listaCompras.innerHTML = '';
+            listaStock.innerHTML = ''; listaCompras.innerHTML = '';
             
-            // 1. Filtrar globalmente por el buscador
-            const invFiltrado = inventario.filter(item => {
-                if (termino && !item.nombre.toLowerCase().includes(termino) && !(item.categoria || '').toLowerCase().includes(termino)) {
-                    return false;
-                }
-                return true;
-            });
-
-            // 2. Ordenar alfabéticamente
+            const invFiltrado = inventario.filter(item => { if (termino && !item.nombre.toLowerCase().includes(termino) && !(item.categoria || '').toLowerCase().includes(termino)) return false; return true; });
             const invOrdenado = [...invFiltrado].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-            // ==========================================
-            // RENDERIZAR PESTAÑA: STOCK
-            // ==========================================
             invOrdenado.forEach(item => {
                 const enFalta = item.cantidad <= item.minimo;
                 const agotado = item.cantidad === 0;
@@ -517,31 +452,18 @@
                 `;
             });
 
-            // ==========================================
-            // RENDERIZAR PESTAÑA: COMPRAR (AGRUPADA)
-            // ==========================================
             const faltantes = invOrdenado.filter(item => item.cantidad <= item.minimo);
-
             if (faltantes.length === 0) {
                 listaCompras.innerHTML = '<p class="text-center text-gray-500 mt-6 italic">¡Todo listo! No hay faltantes.</p>';
             } else {
-                // Obtener categorías únicas presentes en los faltantes
                 const categorias = [...new Set(faltantes.map(i => i.categoria || 'Alimento'))].sort();
-                
                 categorias.forEach(cat => {
-                    // Encabezado del pasillo/categoría
-                    listaCompras.innerHTML += `
-                        <div class="bg-gray-200 text-gray-700 text-xs font-bold uppercase px-2 py-1.5 rounded mt-3 mb-2 flex items-center gap-1">
-                            📍 Pasillo: ${cat}
-                        </div>`;
-                    
-                    // Productos de esta categoría
+                    listaCompras.innerHTML += `<div class="bg-gray-200 text-gray-700 text-xs font-bold uppercase px-2 py-1.5 rounded mt-3 mb-2 flex items-center gap-1">📍 Pasillo: ${cat}</div>`;
                     const itemsCat = faltantes.filter(i => (i.categoria || 'Alimento') === cat);
                     itemsCat.forEach(item => {
                         const agotado = item.cantidad === 0;
                         let etiqueta = agotado ? '<span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded ml-2">Agotado</span>' : '<span class="bg-yellow-500 text-white text-xs px-2 py-0.5 rounded ml-2">Poco</span>';
                         let borderClass = agotado ? "border-l-red-500" : "border-l-yellow-500";
-                        
                         listaCompras.innerHTML += `
                             <div class="flex flex-col border p-3 rounded-lg shadow-sm bg-white mb-2 border-gray-200 border-l-4 ${borderClass}">
                                 <div class="flex justify-between items-center mb-2">
@@ -549,9 +471,7 @@
                                 </div>
                                 <div class="flex justify-between items-center">
                                     <p class="text-xs text-gray-500">Tenés: ${item.cantidad} ${item.unidad} (Min: ${item.minimo})</p>
-                                    <button onclick="comprarCantidadCustom(${item.id})" class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm flex items-center gap-1">
-                                        🛒 Comprar
-                                    </button>
+                                    <button onclick="comprarCantidadCustom(${item.id})" class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm flex items-center gap-1">🛒 Comprar</button>
                                 </div>
                             </div>
                         `;
