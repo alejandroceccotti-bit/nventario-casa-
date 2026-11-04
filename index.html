@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock de Casa V7.4 - Cloud Seguro</title>
+    <title>Stock de Casa V7.5 - Cloud Seguro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { -webkit-tap-highlight-color: transparent; }
@@ -21,7 +21,7 @@
     </script>
 
     <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0 z-10 relative">
-        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V7.4</h1>
+        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V7.5</h1>
         <div class="flex gap-2">
             <button onclick="toggleBuscador()" class="bg-blue-400 px-2 py-1 rounded text-xs shadow flex items-center justify-center">
                 🔍
@@ -109,9 +109,9 @@
                 </form>
             </div>
             <div class="mb-2 flex justify-between items-end">
-                <p class="text-sm text-gray-600 font-bold">🛒 Faltantes (Stock 0 o por debajo del mínimo):</p>
+                <p class="text-sm text-gray-600 font-bold">🛒 Tu Lista de Compras:</p>
             </div>
-            <div id="lista-compras" class="space-y-3 pb-6"></div>
+            <div id="lista-compras" class="space-y-2 pb-6"></div>
         </div>
     </div>
 
@@ -269,7 +269,6 @@
                 document.getElementById('unidad-stock').value = 'unid';
             }
             
-            // Oculta el formulario al guardar exitosamente
             document.getElementById(`contenedor-form-${origen}`).classList.add('hidden');
             guardarDatos(true);
         }
@@ -472,20 +471,27 @@
             const listaStock = document.getElementById('lista-stock');
             const listaCompras = document.getElementById('lista-compras');
             
-            // Obtener el término de búsqueda
             const inputBuscador = document.getElementById('input-buscador');
             const termino = inputBuscador ? inputBuscador.value.toLowerCase() : '';
             
             listaStock.innerHTML = '';
             listaCompras.innerHTML = '';
-            const invOrdenado = [...inventario].sort((a, b) => a.nombre.localeCompare(b.nombre));
-
-            invOrdenado.forEach(item => {
-                // Aplicar el filtro de búsqueda
-                if (termino && !item.nombre.toLowerCase().includes(termino) && !item.categoria.toLowerCase().includes(termino)) {
-                    return; // Si no coincide con el nombre o categoría, se salta este producto
+            
+            // 1. Filtrar globalmente por el buscador
+            const invFiltrado = inventario.filter(item => {
+                if (termino && !item.nombre.toLowerCase().includes(termino) && !(item.categoria || '').toLowerCase().includes(termino)) {
+                    return false;
                 }
+                return true;
+            });
 
+            // 2. Ordenar alfabéticamente
+            const invOrdenado = [...invFiltrado].sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+            // ==========================================
+            // RENDERIZAR PESTAÑA: STOCK
+            // ==========================================
+            invOrdenado.forEach(item => {
                 const enFalta = item.cantidad <= item.minimo;
                 const agotado = item.cantidad === 0;
                 let borderClass = agotado ? "border-red-500" : (enFalta ? "border-yellow-500" : "border-green-500");
@@ -509,22 +515,49 @@
                         </div>
                     </div>
                 `;
-
-                if (enFalta) {
-                    let etiqueta = agotado ? '<span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded ml-2">Agotado</span>' : '<span class="bg-yellow-500 text-white text-xs px-2 py-0.5 rounded ml-2">Poco</span>';
-                    listaCompras.innerHTML += `
-                        <div class="flex flex-col border p-3 rounded-lg shadow-sm bg-white mb-2 border-gray-200">
-                            <div class="flex justify-between items-center mb-2">
-                                <p class="font-bold text-gray-800">${item.nombre} ${etiqueta}</p>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <p class="text-xs text-gray-500">Tenés: ${item.cantidad} ${item.unidad} (Min: ${item.minimo})</p>
-                                <button onclick="comprarCantidadCustom(${item.id})" class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm">🛒 Registrar Compra</button>
-                            </div>
-                        </div>
-                    `;
-                }
             });
+
+            // ==========================================
+            // RENDERIZAR PESTAÑA: COMPRAR (AGRUPADA)
+            // ==========================================
+            const faltantes = invOrdenado.filter(item => item.cantidad <= item.minimo);
+
+            if (faltantes.length === 0) {
+                listaCompras.innerHTML = '<p class="text-center text-gray-500 mt-6 italic">¡Todo listo! No hay faltantes.</p>';
+            } else {
+                // Obtener categorías únicas presentes en los faltantes
+                const categorias = [...new Set(faltantes.map(i => i.categoria || 'Alimento'))].sort();
+                
+                categorias.forEach(cat => {
+                    // Encabezado del pasillo/categoría
+                    listaCompras.innerHTML += `
+                        <div class="bg-gray-200 text-gray-700 text-xs font-bold uppercase px-2 py-1.5 rounded mt-3 mb-2 flex items-center gap-1">
+                            📍 Pasillo: ${cat}
+                        </div>`;
+                    
+                    // Productos de esta categoría
+                    const itemsCat = faltantes.filter(i => (i.categoria || 'Alimento') === cat);
+                    itemsCat.forEach(item => {
+                        const agotado = item.cantidad === 0;
+                        let etiqueta = agotado ? '<span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded ml-2">Agotado</span>' : '<span class="bg-yellow-500 text-white text-xs px-2 py-0.5 rounded ml-2">Poco</span>';
+                        let borderClass = agotado ? "border-l-red-500" : "border-l-yellow-500";
+                        
+                        listaCompras.innerHTML += `
+                            <div class="flex flex-col border p-3 rounded-lg shadow-sm bg-white mb-2 border-gray-200 border-l-4 ${borderClass}">
+                                <div class="flex justify-between items-center mb-2">
+                                    <p class="font-bold text-gray-800">${item.nombre} ${etiqueta}</p>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <p class="text-xs text-gray-500">Tenés: ${item.cantidad} ${item.unidad} (Min: ${item.minimo})</p>
+                                    <button onclick="comprarCantidadCustom(${item.id})" class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm flex items-center gap-1">
+                                        🛒 Comprar
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+            }
         }
         
         window.onload = cargarDesdeNube;
