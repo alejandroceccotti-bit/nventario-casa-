@@ -272,11 +272,16 @@
                 let itemLimpio = limpiarNombre(item.nombre);
                 if (itemLimpio === nombreLimpio) return item; // Coincidencia exacta
                 
+                // NUEVA REGLA INTELIGENTE: Si uno contiene al otro (Ej: "leche" dentro de "leche las 3 niñas")
+                if (itemLimpio.includes(nombreLimpio) || nombreLimpio.includes(itemLimpio)) {
+                    return item; // ¡Lo detecta de inmediato!
+                }
+                
                 let similitud = calcularSimilitud(itemLimpio, nombreLimpio);
                 if (similitud > maxSimilitud) { maxSimilitud = similitud; mejorCandidato = item; }
             }
-            // Umbral estricto del 85%
-            if (maxSimilitud >= 0.85) return mejorCandidato;
+            
+            if (maxSimilitud >= 0.75) return mejorCandidato; // Bajamos levemente al 75% para mayor sensibilidad
             return null;
         }
 
