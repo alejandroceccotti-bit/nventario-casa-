@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock de Casa V7.6 - App Nativa</title>
+    <title>Stock de Casa V8.0 - Completa y Veloz</title>
     
-    <!-- Configuración PWA (App Nativa) -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,6 +17,9 @@
         .tab-inactive { color: #6b7280; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Ocultar flechas en campos numéricos */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800 h-screen flex flex-col">
@@ -28,7 +30,7 @@
     </script>
 
     <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0 z-10 relative">
-        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V7.6</h1>
+        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V8.0</h1>
         <div class="flex gap-2">
             <button onclick="toggleBuscador()" class="bg-blue-400 px-2 py-1 rounded text-xs shadow flex items-center justify-center">🔍</button>
             <button onclick="cargarDesdeNube()" class="bg-blue-800 px-2 py-1 rounded text-xs shadow flex items-center gap-1">☁️ Sync</button>
@@ -59,20 +61,31 @@
                 ➕ Cargar Producto Manualmente
             </button>
             <div id="contenedor-form-stock" class="hidden">
-                <form id="form-add-stock" class="mb-4 bg-white p-3 rounded-lg shadow-sm border-l-4 border-blue-500" onsubmit="agregarProducto(event, 'stock')">
+                <form id="form-add-stock" class="mb-4 bg-white p-3 rounded-lg shadow-sm border-l-4 border-blue-500" onsubmit="agregarProductoManual(event)">
                     <div class="flex gap-2 mb-2">
                         <input type="text" id="nombre-stock" placeholder="Ej. Tomates o Fideos" class="flex-1 border rounded px-2 py-1.5 text-sm" required>
-                        <select id="categoria-stock" class="border rounded px-2 py-1.5 text-sm w-28">
-                            <option value="Alimento">Alimento</option>
+                        <select id="categoria-stock" class="border rounded px-2 py-1.5 text-sm w-32">
+                            <option value="Almacén">Almacén</option>
+                            <option value="Carnicería">Carnicería</option>
+                            <option value="Verdulería">Verdulería</option>
+                            <option value="Frutería">Frutería</option>
+                            <option value="Lácteos">Lácteos</option>
+                            <option value="Panadería">Panadería</option>
+                            <option value="Bebidas (Sin alcohol)">Bebidas (Sin alcohol)</option>
+                            <option value="Bebidas (Alcohólicas)">Bebidas (Alcohólicas)</option>
                             <option value="Limpieza">Limpieza</option>
+                            <option value="Aseo Personal">Aseo Personal</option>
+                            <option value="Pescadería">Pescadería</option>
+                            <option value="Congelados">Congelados</option>
+                            <option value="Otros">Otros</option>
                         </select>
                     </div>
-                    <div class="flex gap-2 items-center">
+                    <div class="flex gap-2 items-center mb-3">
                         <div class="flex-1">
                             <label class="text-[10px] text-gray-400 font-bold uppercase block">Cantidad / Kilos</label>
-                            <input type="number" step="any" id="cant-stock" value="1" min="0" class="w-full border rounded px-2 py-1 text-sm" required>
+                            <input type="number" step="any" id="cant-stock" value="1" min="0" class="w-full border rounded px-2 py-1 text-sm text-center" required>
                         </div>
-                        <div class="w-24">
+                        <div class="w-20">
                             <label class="text-[10px] text-gray-400 font-bold uppercase block">Medida</label>
                             <select id="unidad-stock" class="w-full border rounded px-2 py-1 text-sm">
                                 <option value="unid">Unid.</option>
@@ -81,9 +94,15 @@
                         </div>
                         <div class="w-20">
                             <label class="text-[10px] text-gray-400 font-bold uppercase block">Mínimo</label>
-                            <input type="number" step="any" id="min-stock" value="1" min="0" class="w-full border rounded px-2 py-1 text-sm" required>
+                            <input type="number" step="any" id="min-stock" value="1" min="0" class="w-full border rounded px-2 py-1 text-sm text-center" required>
                         </div>
-                        <button type="submit" class="ml-auto bg-blue-500 text-white px-4 py-2 rounded text-sm font-bold self-end">+</button>
+                    </div>
+                    <div class="flex justify-between items-center bg-gray-50 p-2 rounded border">
+                        <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                            <input type="checkbox" id="historial-stock" class="w-4 h-4 text-blue-600 rounded">
+                            Registrar también en Historial (Compra)
+                        </label>
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md">💾 Guardar</button>
                     </div>
                 </form>
             </div>
@@ -95,13 +114,13 @@
                 ➕ Agregar Faltante Manualmente
             </button>
             <div id="contenedor-form-compra" class="hidden">
-                <form id="form-add-compra" class="mb-4 bg-white p-3 rounded-lg shadow-sm border-l-4 border-blue-500" onsubmit="agregarProducto(event, 'compra')">
+                <form id="form-add-compra" class="mb-4 bg-white p-3 rounded-lg shadow-sm border-l-4 border-blue-500" onsubmit="agregarCompraManual(event)">
                     <div class="flex gap-2 mb-2">
                         <input type="text" id="nombre-compra" placeholder="Ej. Lavandina" class="flex-1 border rounded px-2 py-1.5 text-sm" required>
                     </div>
                     <div class="flex justify-between items-center">
                         <p class="text-xs text-gray-400 italic">Se agregará con cantidad 0.</p>
-                        <button type="submit" class="bg-blue-500 text-white px-4 py-1.5 rounded text-sm font-bold">Agregar</button>
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md">💾 Guardar Faltante</button>
                     </div>
                 </form>
             </div>
@@ -121,13 +140,24 @@
             <input type="text" id="edit-nombre" class="w-full border rounded-lg p-2 mb-3 bg-gray-50">
             <label class="block text-sm font-semibold mb-1 text-gray-600">Categoría</label>
             <select id="edit-categoria" class="w-full border rounded-lg p-2 mb-3 bg-gray-50">
-                <option value="Alimento">Alimento</option>
+                <option value="Almacén">Almacén</option>
+                <option value="Carnicería">Carnicería</option>
+                <option value="Verdulería">Verdulería</option>
+                <option value="Frutería">Frutería</option>
+                <option value="Lácteos">Lácteos</option>
+                <option value="Panadería">Panadería</option>
+                <option value="Bebidas (Sin alcohol)">Bebidas (Sin alcohol)</option>
+                <option value="Bebidas (Alcohólicas)">Bebidas (Alcohólicas)</option>
                 <option value="Limpieza">Limpieza</option>
+                <option value="Aseo Personal">Aseo Personal</option>
+                <option value="Pescadería">Pescadería</option>
+                <option value="Congelados">Congelados</option>
+                <option value="Otros">Otros</option>
             </select>
             <div class="flex gap-2 mb-3">
                 <div class="flex-1">
                     <label class="block text-xs font-semibold mb-1 text-gray-600">Stock Actual</label>
-                    <input type="number" step="any" id="edit-cantidad" class="w-full border rounded-lg p-2 bg-gray-50">
+                    <input type="number" step="any" id="edit-cantidad" class="w-full border rounded-lg p-2 bg-gray-50 text-center">
                 </div>
                 <div class="w-24">
                     <label class="block text-xs font-semibold mb-1 text-gray-600">Medida</label>
@@ -138,7 +168,7 @@
                 </div>
                 <div class="w-24">
                     <label class="block text-xs font-semibold mb-1 text-gray-600">Alerta Mín.</label>
-                    <input type="number" step="any" id="edit-minimo" class="w-full border rounded-lg p-2 bg-gray-50">
+                    <input type="number" step="any" id="edit-minimo" class="w-full border rounded-lg p-2 bg-gray-50 text-center">
                 </div>
             </div>
             <div class="flex justify-between items-center mt-6">
@@ -154,11 +184,11 @@
     <div id="modal-texto" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
         <div class="bg-white p-5 rounded-xl w-full max-w-sm shadow-xl flex flex-col h-2/3">
             <h2 class="font-bold text-lg mb-2">📝 Carga Masiva (Texto)</h2>
-            <p class="text-xs text-gray-500 mb-2">Escribe o pega una lista de WhatsApp.</p>
+            <p class="text-xs text-gray-500 mb-2">Escribe o dicta tu lista.</p>
             <textarea id="texto-masivo" class="w-full flex-1 border rounded-lg p-3 text-sm bg-gray-50 mb-4" placeholder="Ej: Comprar 1.5 kg de tomates..."></textarea>
             <div class="flex justify-end gap-2">
-                <button onclick="cerrarModalTexto()" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">Cancelar</button>
-                <button onclick="procesarTextoIA()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold shadow-md">Analizar Texto</button>
+                <button onclick="cerrarModalTexto()" class="px-4 py-2 bg-gray-200 rounded-lg text-sm font-bold">Cancelar</button>
+                <button onclick="procesarTextoIA()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold shadow-md">Analizar</button>
             </div>
         </div>
     </div>
@@ -166,7 +196,13 @@
     <div id="modal-verificacion" class="hidden fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center p-4 z-50">
         <div class="bg-white p-4 rounded-xl w-full max-w-md shadow-xl max-h-full flex flex-col">
             <h2 class="font-bold text-lg mb-1">🤖 Revisión de IA</h2>
-            <p class="text-xs text-gray-500 mb-3">Revisa, ajusta cantidades o pon cantidad 0 si es para comprar.</p>
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-2 mb-3 rounded">
+                <label class="flex items-center gap-2 text-xs font-bold text-blue-800 cursor-pointer">
+                    <input type="checkbox" id="toggle-historial-ia" class="w-4 h-4">
+                    🛒 Registrar todo como compra (Historial)
+                </label>
+                <p class="text-[10px] text-blue-600 mt-1">Actívalo si estás escaneando un ticket de compra. Déjalo apagado si cuentas la alacena.</p>
+            </div>
             <div id="lista-verificacion" class="flex-1 overflow-y-auto space-y-3 p-1 mb-4 border border-gray-200 rounded bg-gray-50"></div>
             <div class="flex justify-between items-center shrink-0">
                 <button onclick="cerrarModalVerificacion()" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-bold">Descartar</button>
@@ -182,34 +218,108 @@
 
     <script>
         let inventario = [];
+        let timerSilencioso = null; // Para el Debouncing
 
+        // 1. Limpieza anti-duplicados 
+        function limpiarNombre(texto) {
+            if (!texto) return '';
+            let limpio = texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            const palabrasBasura = ['lata de ', 'frasco de ', 'bolsa de ', 'paquete de ', 'caja de ', 'botella de ', 'kg de '];
+            palabrasBasura.forEach(p => { limpio = limpio.replace(p, ''); });
+            return limpio.replace(/\s+/g, ' ').trim();
+        }
+
+        // 2. Levenshtein estricto (85% para evitar "sal" vs "salsa")
+        function calcularSimilitud(s1, s2) {
+            let longer = s1; let shorter = s2;
+            if (s1.length < s2.length) { longer = s2; shorter = s1; }
+            let longerLength = longer.length;
+            if (longerLength === 0) return 1.0;
+            // Penalizamos fuertemente las diferencias de longitud (Ej: Sal (3) vs Salsa (5))
+            if (longerLength - shorter.length > 2) return 0; 
+            return (longerLength - editarDistancia(longer, shorter)) / parseFloat(longerLength);
+        }
+
+        function editarDistancia(s1, s2) {
+            s1 = s1.toLowerCase(); s2 = s2.toLowerCase();
+            let costs = new Array();
+            for (let i = 0; i <= s1.length; i++) {
+                let lastValue = i;
+                for (let j = 0; j <= s2.length; j++) {
+                    if (i == 0) costs[j] = j;
+                    else {
+                        if (j > 0) {
+                            let newValue = costs[j - 1];
+                            if (s1.charAt(i - 1) != s2.charAt(j - 1)) newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                            costs[j - 1] = lastValue; lastValue = newValue;
+                        }
+                    }
+                }
+                if (s1.length > 0) costs[s2.length] = lastValue;
+            }
+            return costs[s2.length];
+        }
+
+        function buscarProductoSimilar(nombreNuevo) {
+            let nombreLimpio = limpiarNombre(nombreNuevo);
+            if (!nombreLimpio) return null;
+            let mejorCandidato = null;
+            let maxSimilitud = 0;
+
+            for (let item of inventario) {
+                let itemLimpio = limpiarNombre(item.nombre);
+                if (itemLimpio === nombreLimpio) return item; // Coincidencia exacta
+                
+                let similitud = calcularSimilitud(itemLimpio, nombreLimpio);
+                if (similitud > maxSimilitud) { maxSimilitud = similitud; mejorCandidato = item; }
+            }
+            // Umbral estricto del 85%
+            if (maxSimilitud >= 0.85) return mejorCandidato;
+            return null;
+        }
+
+        // --- SISTEMA DE DATOS Y SINCRONIZACIÓN ---
         async function cargarDesdeNube() {
             mostrarLoading(true, "Descargando inventario...");
             try {
                 const response = await fetch(URL_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ token: TOKEN, accion: 'leer' }) });
                 const data = await response.json();
                 if(data.inventario) {
-                    inventario = data.inventario.map(i => ({ id: Number(i.id) || Date.now() + Math.random(), nombre: i.nombre || '', categoria: i.categoria || 'Alimento', cantidad: parseFloat(i.cantidad) || 0, unidad: i.unidad || 'unid', minimo: parseFloat(i.minimo) || 1 }));
+                    inventario = data.inventario.map(i => ({ id: Number(i.id) || Date.now() + Math.random(), nombre: i.nombre || '', categoria: i.categoria || 'Almacén', cantidad: parseFloat(i.cantidad) || 0, unidad: i.unidad || 'unid', minimo: parseFloat(i.minimo) || 0 }));
                     renderizar();
                 } else if(data.error) throw new Error(data.error);
             } catch(e) {
                 console.error("Error al cargar la nube:", e);
-                inventario = JSON.parse(localStorage.getItem('hogar_stock')) || [];
-                renderizar();
+                inventario = JSON.parse(localStorage.getItem('hogar_stock')) || []; renderizar();
             } finally { mostrarLoading(false); }
         }
 
-        async function guardarDatos(forzarSync = false) {
+        async function guardarDatosSilencioso() {
             localStorage.setItem('hogar_stock', JSON.stringify(inventario));
-            renderizar();
-            if(forzarSync) mostrarLoading(true, "Guardando en la Nube...");
             try {
                 await fetch(URL_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ token: TOKEN, accion: 'guardar', inventario: inventario }) });
-            } catch(e) {
-                console.error("No se pudo sincronizar.");
-            } finally { if(forzarSync) mostrarLoading(false); }
+            } catch(e) { console.error("No se pudo sincronizar de fondo."); }
         }
 
+        async function guardarDatosConLoader() {
+            localStorage.setItem('hogar_stock', JSON.stringify(inventario));
+            renderizar();
+            mostrarLoading(true, "Guardando...");
+            try {
+                await fetch(URL_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ token: TOKEN, accion: 'guardar', inventario: inventario }) });
+            } catch(e) { console.error("No se pudo sincronizar."); } finally { mostrarLoading(false); }
+        }
+
+        // --- REGISTRO DE HISTORIAL DE COMPRAS ---
+        function enviarAHistorialBackground(nombre, categoria, cantidad, unidad) {
+            fetch(URL_APPS_SCRIPT, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                body: JSON.stringify({ token: TOKEN, accion: 'historial', compra: { nombre, categoria, cantidad, unidad } }) 
+            }).catch(e => console.error("Error al enviar historial", e));
+        }
+
+        // --- MANEJO DE INTERFAZ (UI) ---
         function cambiarTab(tab) {
             document.getElementById('sec-stock').style.display = tab === 'stock' ? 'block' : 'none';
             document.getElementById('sec-lista').style.display = tab === 'lista' ? 'block' : 'none';
@@ -224,49 +334,109 @@
             else { document.getElementById('input-buscador').value = ''; renderizar(); }
         }
 
-        function agregarProducto(e, origen) {
+        // --- ACCIONES DEL USUARIO ---
+        function agregarProductoManual(e) {
             e.preventDefault();
-            let nombre = document.getElementById(origen === 'stock' ? 'nombre-stock' : 'nombre-compra').value;
-            let categoria = origen === 'stock' ? document.getElementById('categoria-stock').value : "Alimento";
-            let cantidad = origen === 'stock' ? parseFloat(document.getElementById('cant-stock').value) || 0 : 0;
-            let unidad = origen === 'stock' ? document.getElementById('unidad-stock').value : 'unid';
-            let minimo = origen === 'stock' ? parseFloat(document.getElementById('min-stock').value) || 1 : 1;
+            let nombre = document.getElementById('nombre-stock').value.trim();
+            let categoria = document.getElementById('categoria-stock').value;
+            let cantidad = parseFloat(document.getElementById('cant-stock').value) || 0;
+            let unidad = document.getElementById('unidad-stock').value;
+            let minimo = parseFloat(document.getElementById('min-stock').value) || 0;
+            let vaAHistorial = document.getElementById('historial-stock').checked;
             
-            inventario.push({ id: Date.now(), nombre, categoria, cantidad, unidad, minimo });
-            document.getElementById(`form-add-${origen}`).reset();
-            if(origen === 'stock') { document.getElementById('cant-stock').value = 1; document.getElementById('min-stock').value = 1; document.getElementById('unidad-stock').value = 'unid'; }
-            document.getElementById(`contenedor-form-${origen}`).classList.add('hidden');
-            guardarDatos(true);
+            let existente = buscarProductoSimilar(nombre);
+
+            if (existente) {
+                let confirmar = confirm(`🔍 Producto similar detectado: "${existente.nombre}".\n¿Deseas sumar ${cantidad} a este producto?`);
+                if (confirmar) {
+                    existente.cantidad += cantidad; existente.categoria = categoria; existente.unidad = unidad; existente.minimo = minimo;
+                    if(vaAHistorial && cantidad > 0) enviarAHistorialBackground(existente.nombre, categoria, cantidad, unidad);
+                } else {
+                    inventario.push({ id: Date.now(), nombre, categoria, cantidad, unidad, minimo });
+                    if(vaAHistorial && cantidad > 0) enviarAHistorialBackground(nombre, categoria, cantidad, unidad);
+                }
+            } else {
+                inventario.push({ id: Date.now(), nombre, categoria, cantidad, unidad, minimo });
+                if(vaAHistorial && cantidad > 0) enviarAHistorialBackground(nombre, categoria, cantidad, unidad);
+            }
+
+            document.getElementById('form-add-stock').reset();
+            document.getElementById('cant-stock').value = 1;
+            document.getElementById('min-stock').value = 1;
+            document.getElementById('contenedor-form-stock').classList.add('hidden');
+            guardarDatosConLoader();
         }
 
-        function modificarStock(id, monto) {
+        function agregarCompraManual(e) {
+            e.preventDefault();
+            let nombre = document.getElementById('nombre-compra').value.trim();
+            let existente = buscarProductoSimilar(nombre);
+
+            if (existente) {
+                let confirmar = confirm(`🔍 Producto detectado: "${existente.nombre}".\n¿Deseas pasarlo a faltante (stock 0)?`);
+                if (confirmar) existente.cantidad = 0;
+                else inventario.push({ id: Date.now(), nombre, categoria: "Otros", cantidad: 0, unidad: "unid", minimo: 1 });
+            } else {
+                inventario.push({ id: Date.now(), nombre, categoria: "Otros", cantidad: 0, unidad: "unid", minimo: 1 });
+            }
+
+            document.getElementById('form-add-compra').reset();
+            document.getElementById('contenedor-form-compra').classList.add('hidden');
+            guardarDatosConLoader();
+        }
+
+        // Modificación Instantánea de Stock (UX sin bloqueos)
+        function modificarStockUI(id, monto) {
             const item = inventario.find(i => Number(i.id) === Number(id));
-            if (item) { item.cantidad = Math.max(0, item.cantidad + monto); guardarDatos(true); }
+            if (item) { 
+                item.cantidad = Math.max(0, parseFloat((item.cantidad + monto).toFixed(2))); 
+                renderizar(); 
+                
+                // Debouncing: Espera 1.5s desde el último clic para guardar silenciosamente
+                clearTimeout(timerSilencioso);
+                timerSilencioso = setTimeout(() => { guardarDatosSilencioso(); }, 1500);
+            }
+        }
+
+        function setStockManual(id) {
+            const item = inventario.find(i => Number(i.id) === Number(id));
+            if (!item) return;
+            let nuevo = prompt(`Ingrese nueva cantidad exacta para "${item.nombre}":`, item.cantidad);
+            if (nuevo !== null && !isNaN(parseFloat(nuevo))) { 
+                item.cantidad = Math.max(0, parseFloat(parseFloat(nuevo).toFixed(2))); 
+                renderizar(); 
+                guardarDatosSilencioso(); 
+            }
         }
 
         function comprarCantidadCustom(id) {
             const item = inventario.find(i => Number(i.id) === Number(id));
             if (!item) return;
-            let cantidadAgregar = prompt(`¿Cuántos ${item.unidad === 'kg' ? 'kilos' : 'unidades'} de "${item.nombre}" compraste?`, "1");
+            let cantidadAgregar = prompt(`¿Cuántos ${item.unidad === 'kg' ? 'kilos' : 'unidades'} compraste de "${item.nombre}"?`, "1");
             if (cantidadAgregar === null) return;
             let num = parseFloat(cantidadAgregar);
-            if (!isNaN(num) && num > 0) { item.cantidad += num; guardarDatos(true); }
+            if (!isNaN(num) && num > 0) { 
+                item.cantidad += num; 
+                renderizar(); 
+                guardarDatosSilencioso(); 
+                // Al ser el botón "Comprar", siempre va al historial
+                enviarAHistorialBackground(item.nombre, item.categoria, num, item.unidad);
+            }
         }
 
+        // --- FUNCIONES SECUNDARIAS (Edición/Modales) ---
         function abrirModal(id) {
             const item = inventario.find(i => Number(i.id) === Number(id));
             if (!item) return;
             document.getElementById('edit-id').value = item.id;
             document.getElementById('edit-nombre').value = item.nombre;
-            document.getElementById('edit-categoria').value = item.categoria || 'Alimento';
+            document.getElementById('edit-categoria').value = item.categoria || 'Almacén';
             document.getElementById('edit-cantidad').value = item.cantidad;
             document.getElementById('edit-unidad').value = item.unidad || 'unid';
             document.getElementById('edit-minimo').value = item.minimo;
             document.getElementById('modal-editar').classList.remove('hidden');
         }
-
         function cerrarModal() { document.getElementById('modal-editar').classList.add('hidden'); }
-        
         function guardarEdicion() {
             const id = Number(document.getElementById('edit-id').value);
             const item = inventario.find(i => Number(i.id) === id);
@@ -275,71 +445,47 @@
                 item.categoria = document.getElementById('edit-categoria').value;
                 item.cantidad = parseFloat(document.getElementById('edit-cantidad').value) || 0;
                 item.unidad = document.getElementById('edit-unidad').value;
-                item.minimo = parseFloat(document.getElementById('edit-minimo').value) || 1;
-                guardarDatos(true); cerrarModal();
+                item.minimo = parseFloat(document.getElementById('edit-minimo').value) || 0;
+                guardarDatosConLoader(); cerrarModal();
             }
         }
-
         function eliminarDesdeModal() {
             const id = Number(document.getElementById('edit-id').value);
-            if (confirm("¿Seguro que quieres borrar este producto?")) {
+            if (confirm("¿Seguro que quieres borrar este producto por completo?")) {
                 inventario = inventario.filter(i => Number(i.id) !== id);
-                guardarDatos(true); cerrarModal();
+                guardarDatosConLoader(); cerrarModal();
             }
         }
 
-        function abrirModalTexto() {
-            document.getElementById('texto-masivo').value = '';
-            document.getElementById('modal-texto').classList.remove('hidden');
-        }
+        // --- IA Y PROCESAMIENTO ---
+        function abrirModalTexto() { document.getElementById('texto-masivo').value = ''; document.getElementById('modal-texto').classList.remove('hidden'); }
         function cerrarModalTexto() { document.getElementById('modal-texto').classList.add('hidden'); }
-
         function mostrarLoading(estado, texto = "Procesando...") {
             document.getElementById('loading-text').innerText = texto;
             if (estado) document.getElementById('modal-loading').classList.remove('hidden');
             else document.getElementById('modal-loading').classList.add('hidden');
         }
 
-        // ==========================================
-        // NUEVA FUNCIÓN DE COMPRESIÓN DE IMÁGENES
-        // ==========================================
         function procesarImagenIA(input) {
             const file = input.files[0];
             if (!file) return;
-            
             mostrarLoading(true, "Comprimiendo foto...");
-            
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // Reducimos tamaño máximo
-                    const MAX_HEIGHT = 800;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > height) {
-                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                    } else {
-                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-                    }
-                    
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    // Comprime a JPEG con calidad 0.7 (70%) para enviar algo super liviano
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    const base64Data = dataUrl.split(',')[1];
-                    
+                    let width = img.width; let height = img.height;
+                    if (width > height) { if (width > 800) { height *= 800 / width; width = 800; } }
+                    else { if (height > 800) { width *= 800 / height; height = 800; } }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+                    const base64Data = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
                     llamarGemini('imagen', base64Data);
                 };
                 img.src = e.target.result;
             };
-            reader.readAsDataURL(file);
-            input.value = '';
+            reader.readAsDataURL(file); input.value = '';
         }
 
         function procesarTextoIA() {
@@ -349,26 +495,21 @@
         }
 
         async function llamarGemini(tipo, contenido) {
-            mostrarLoading(true, "Analizando con IA en la Nube...");
+            mostrarLoading(true, "IA Analizando (Puede demorar)...");
             try {
-                const body = { token: TOKEN, accion: tipo === 'imagen' ? 'gemini_imagen' : 'gemini_texto', contenido: contenido };
-                const response = await fetch(URL_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
+                const response = await fetch(URL_APPS_SCRIPT, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ token: TOKEN, accion: tipo === 'imagen' ? 'gemini_imagen' : 'gemini_texto', contenido: contenido }) });
                 const data = await response.json();
-                
                 if (data.error) throw new Error(data.error);
-                let productosDetectados = data.resultado;
-                if (!Array.isArray(productosDetectados)) {
-                    const keys = Object.keys(productosDetectados);
-                    productosDetectados = productosDetectados[keys[0]];
-                }
-                mostrarPanelVerificacion(productosDetectados);
-            } catch (error) { alert("Error de IA: " + error.message); } 
-            finally { mostrarLoading(false); }
+                let productos = data.resultado;
+                if (!Array.isArray(productos)) productos = productos[Object.keys(productos)[0]];
+                mostrarPanelVerificacion(productos);
+            } catch (error) { alert("Error de IA: " + error.message); } finally { mostrarLoading(false); }
         }
 
         let itemsTemporales = [];
         function mostrarPanelVerificacion(productos) {
-            itemsTemporales = productos.map((p, index) => ({ id_temp: 'temp_' + index, nombre: p.nombre || 'Desconocido', categoria: p.categoria === 'Limpieza' ? 'Limpieza' : 'Alimento', cantidad: parseFloat(p.cantidad) || 0, unidad: p.unidad || 'unid', minimo: 1 }));
+            document.getElementById('toggle-historial-ia').checked = false; // Por defecto apagado (modo conteo)
+            itemsTemporales = productos.map((p, index) => ({ id_temp: 'temp_'+index, nombre: p.nombre || 'Desconocido', categoria: p.categoria || 'Otros', cantidad: parseFloat(p.cantidad) || 1, unidad: p.unidad || 'unid', minimo: 1 }));
             dibujarListaVerificacion(); document.getElementById('modal-verificacion').classList.remove('hidden');
         }
 
@@ -385,22 +526,16 @@
                         </div>
                         <div class="flex gap-2 items-end">
                             <div class="flex-1">
-                                <label class="text-[10px] text-gray-400 font-bold uppercase">Categoría</label>
-                                <select class="w-full border-b border-gray-300 text-sm py-1 bg-transparent" onchange="itemsTemporales[${index}].categoria=this.value">
-                                    <option value="Alimento" ${item.categoria === 'Alimento' ? 'selected' : ''}>Alimento</option>
-                                    <option value="Limpieza" ${item.categoria === 'Limpieza' ? 'selected' : ''}>Limpieza</option>
-                                </select>
+                                <label class="text-[10px] text-gray-400 font-bold uppercase">Cat.</label>
+                                <input type="text" class="w-full border-b border-gray-300 text-xs py-1 bg-transparent" value="${item.categoria}" readonly>
                             </div>
-                            <div class="w-20">
+                            <div class="w-16">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase">Cant.</label>
                                 <input type="number" step="any" class="w-full border-b border-gray-300 text-sm py-1 text-center bg-transparent" value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseFloat(this.value)||0">
                             </div>
-                            <div class="w-20">
-                                <label class="text-[10px] text-gray-400 font-bold uppercase">Medida</label>
-                                <select class="w-full border-b border-gray-300 text-sm py-1 bg-transparent" onchange="itemsTemporales[${index}].unidad=this.value">
-                                    <option value="unid" ${item.unidad === 'unid' ? 'selected' : ''}>Unid.</option>
-                                    <option value="kg" ${item.unidad === 'kg' ? 'selected' : ''}>Kg</option>
-                                </select>
+                            <div class="w-16">
+                                <label class="text-[10px] text-gray-400 font-bold uppercase">U.</label>
+                                <input type="text" class="w-full border-b border-gray-300 text-xs py-1 text-center bg-transparent" value="${item.unidad}" readonly>
                             </div>
                         </div>
                     </div>
@@ -410,16 +545,30 @@
 
         function eliminarItemTemporal(index) { itemsTemporales.splice(index, 1); dibujarListaVerificacion(); }
         function cerrarModalVerificacion() { itemsTemporales = []; document.getElementById('modal-verificacion').classList.add('hidden'); }
+        
         function guardarVerificados() {
-            itemsTemporales.forEach(item => { if(item.nombre.trim() !== '') inventario.push({ id: Date.now() + Math.random(), nombre: item.nombre, categoria: item.categoria, cantidad: item.cantidad, unidad: item.unidad || 'unid', minimo: item.minimo }); });
-            guardarDatos(true); cerrarModalVerificacion(); cambiarTab('stock');
+            const vaAHistorial = document.getElementById('toggle-historial-ia').checked;
+            
+            itemsTemporales.forEach(item => {
+                if(item.nombre.trim() !== '') {
+                    let existente = buscarProductoSimilar(item.nombre);
+                    if (existente) {
+                        existente.cantidad += item.cantidad; // Fusiona stock
+                        if(vaAHistorial && item.cantidad > 0) enviarAHistorialBackground(existente.nombre, existente.categoria, item.cantidad, existente.unidad);
+                    } else {
+                        inventario.push({ id: Date.now() + Math.random(), nombre: item.nombre, categoria: item.categoria, cantidad: item.cantidad, unidad: item.unidad || 'unid', minimo: 1 });
+                        if(vaAHistorial && item.cantidad > 0) enviarAHistorialBackground(item.nombre, item.categoria, item.cantidad, item.unidad);
+                    }
+                }
+            });
+            guardarDatosConLoader(); cerrarModalVerificacion(); cambiarTab('stock');
         }
 
+        // --- RENDERIZADO VISUAL ---
         function renderizar() {
             const listaStock = document.getElementById('lista-stock');
             const listaCompras = document.getElementById('lista-compras');
-            const inputBuscador = document.getElementById('input-buscador');
-            const termino = inputBuscador ? inputBuscador.value.toLowerCase() : '';
+            const termino = document.getElementById('input-buscador') ? document.getElementById('input-buscador').value.toLowerCase() : '';
             
             listaStock.innerHTML = ''; listaCompras.innerHTML = '';
             
@@ -427,51 +576,66 @@
             const invOrdenado = [...invFiltrado].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
             invOrdenado.forEach(item => {
-                const enFalta = item.cantidad <= item.minimo;
-                const agotado = item.cantidad === 0;
-                let borderClass = agotado ? "border-red-500" : (enFalta ? "border-yellow-500" : "border-green-500");
-                let bgClass = agotado ? "bg-red-50" : (enFalta ? "bg-yellow-50" : "bg-white");
+                // Matemática estricta de Faltantes y Alertas
+                const faltanteTotal = item.cantidad <= item.minimo;
+                const alertaAmarilla = item.cantidad > item.minimo && item.cantidad <= (item.minimo + 1);
+                
+                let borderClass = "border-gray-300";
+                let bgClass = "bg-white";
+                
+                if (faltanteTotal) {
+                    borderClass = "border-red-500";
+                    bgClass = "bg-red-50"; // Rojo suave
+                } else if (alertaAmarilla) {
+                    borderClass = "border-yellow-400";
+                    bgClass = "bg-yellow-50"; // Amarillo suave
+                }
 
                 listaStock.innerHTML += `
-                    <div class="flex flex-col border-l-4 p-3 rounded-lg shadow-sm mb-2 ${borderClass} ${bgClass}">
+                    <div class="flex flex-col border p-3 rounded-lg shadow-sm mb-2 ${borderClass} ${bgClass}">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
                                 <p class="font-bold text-gray-800 leading-tight">${item.nombre}</p>
-                                <p class="text-xs text-gray-500">${item.categoria || 'Alimento'} | Mín: ${item.minimo} ${item.unidad}</p>
+                                <p class="text-xs text-gray-500">${item.categoria || 'Otros'} | Mínimo: ${item.minimo} ${item.unidad}</p>
                             </div>
                             <button onclick="abrirModal(${item.id})" class="text-gray-400 p-1 text-lg">✏️</button>
                         </div>
-                        <div class="flex justify-between items-center mt-2 border-t pt-2 border-gray-100">
-                            <span class="text-sm font-semibold text-gray-600">Stock: ${item.cantidad} ${item.unidad}</span>
-                            <div class="flex items-center gap-1">
-                                <button onclick="modificarStock(${item.id}, ${item.unidad === 'kg' ? -0.5 : -1})" class="w-8 h-8 rounded-full bg-gray-200 text-gray-800 font-bold flex items-center justify-center">-</button>
-                                <button onclick="modificarStock(${item.id}, ${item.unidad === 'kg' ? 0.5 : 1})" class="w-8 h-8 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center">+</button>
+                        <div class="flex justify-between items-center mt-2 border-t pt-2 border-gray-200 border-opacity-50">
+                            <div class="flex-1 cursor-pointer" onclick="setStockManual(${item.id})">
+                                <span class="text-sm font-semibold text-gray-700 bg-white px-2 py-1 rounded shadow-sm border border-gray-200">Stock: ${item.cantidad} ${item.unidad}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="modificarStockUI(${item.id}, ${item.unidad === 'kg' ? -0.5 : -1})" class="w-10 h-10 rounded-full bg-gray-200 text-gray-800 font-bold text-lg flex items-center justify-center active:bg-gray-300 transition">-</button>
+                                <button onclick="modificarStockUI(${item.id}, ${item.unidad === 'kg' ? 0.5 : 1})" class="w-10 h-10 rounded-full bg-blue-600 text-white font-bold text-lg flex items-center justify-center active:bg-blue-700 shadow-md transition">+</button>
                             </div>
                         </div>
                     </div>
                 `;
             });
 
+            // Filtro para compras: Solo los estrictamente <= minimo
             const faltantes = invOrdenado.filter(item => item.cantidad <= item.minimo);
+            
             if (faltantes.length === 0) {
                 listaCompras.innerHTML = '<p class="text-center text-gray-500 mt-6 italic">¡Todo listo! No hay faltantes.</p>';
             } else {
-                const categorias = [...new Set(faltantes.map(i => i.categoria || 'Alimento'))].sort();
+                const categorias = [...new Set(faltantes.map(i => i.categoria || 'Otros'))].sort();
                 categorias.forEach(cat => {
-                    listaCompras.innerHTML += `<div class="bg-gray-200 text-gray-700 text-xs font-bold uppercase px-2 py-1.5 rounded mt-3 mb-2 flex items-center gap-1">📍 Pasillo: ${cat}</div>`;
-                    const itemsCat = faltantes.filter(i => (i.categoria || 'Alimento') === cat);
+                    listaCompras.innerHTML += `<div class="bg-gray-200 text-gray-800 text-xs font-bold uppercase px-3 py-2 rounded shadow-sm mt-4 mb-2 flex items-center gap-1 border-l-4 border-gray-400">📍 Pasillo: ${cat}</div>`;
+                    
+                    const itemsCat = faltantes.filter(i => (i.categoria || 'Otros') === cat);
                     itemsCat.forEach(item => {
-                        const agotado = item.cantidad === 0;
-                        let etiqueta = agotado ? '<span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded ml-2">Agotado</span>' : '<span class="bg-yellow-500 text-white text-xs px-2 py-0.5 rounded ml-2">Poco</span>';
-                        let borderClass = agotado ? "border-l-red-500" : "border-l-yellow-500";
+                        const enCero = item.cantidad === 0;
+                        let etiqueta = enCero ? '<span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded ml-2 shadow-sm">Agotado</span>' : '<span class="bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded ml-2 shadow-sm">Faltante</span>';
+                        
                         listaCompras.innerHTML += `
-                            <div class="flex flex-col border p-3 rounded-lg shadow-sm bg-white mb-2 border-gray-200 border-l-4 ${borderClass}">
+                            <div class="flex flex-col border p-3 rounded-lg shadow-sm bg-white mb-2 border-l-4 border-red-500">
                                 <div class="flex justify-between items-center mb-2">
-                                    <p class="font-bold text-gray-800">${item.nombre} ${etiqueta}</p>
+                                    <p class="font-bold text-gray-800 text-sm leading-tight flex-1">${item.nombre} ${etiqueta}</p>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <p class="text-xs text-gray-500">Tenés: ${item.cantidad} ${item.unidad} (Min: ${item.minimo})</p>
-                                    <button onclick="comprarCantidadCustom(${item.id})" class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm flex items-center gap-1">🛒 Comprar</button>
+                                <div class="flex justify-between items-center bg-gray-50 p-1.5 rounded">
+                                    <p class="text-xs text-gray-600 font-semibold">Tenés: ${item.cantidad} ${item.unidad} <span class="text-gray-400 font-normal">(Min: ${item.minimo})</span></p>
+                                    <button onclick="comprarCantidadCustom(${item.id})" class="bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-md flex items-center gap-1 active:bg-green-600 transition">🛒 Comprar</button>
                                 </div>
                             </div>
                         `;
