@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock de Casa V8.4 - Anti-Duplicados Interactivo</title>
+    <title>Stock de Casa V8.6 - Filtros y Acordeones</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
@@ -12,32 +12,42 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { -webkit-tap-highlight-color: transparent; }
-        .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: bold; }
-        .tab-inactive { color: #6b7280; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        body { -webkit-tap-highlight-color: transparent; background-color: #f3f4f6; }
+        .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 800; }
+        .tab-inactive { color: #9ca3af; font-weight: 600; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Ocultar flechas en campos numéricos */
         input[type="number"]::-webkit-outer-spin-button,
         input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
-<body class="bg-gray-100 font-sans text-gray-800 h-screen flex flex-col">
+<body class="font-sans text-gray-800 h-screen flex flex-col">
     
     <script>
         const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbyDxJ7bZFqY9zynADQBRv4vxUxXcRpQHtQXgfscDilmxR8k-MXGvXce0deDk7rs228d/exec";
         const TOKEN = "1424Losb_"; 
+        
+        const iconosCat = {
+            "Almacén": "🥫", "Carnicería": "🥩", "Fiambrería": "🧀", "Verdulería": "🥬",
+            "Frutería": "🍎", "Lácteos": "🥛", "Panadería": "🥖", "Bebidas (Sin alcohol)": "🥤",
+            "Bebidas (Alcohólicas)": "🍷", "Limpieza": "🧼", "Aseo Personal": "🧻", 
+            "Pescadería": "🐟", "Congelados": "❄️", "Otros": "📦"
+        };
+
+        // VARIABLES DE ESTADO PARA INTERFAZ
+        let filtroActual = 'todos'; // 'todos', 'suficiente', 'alerta', 'agotado'
+        let estadoCategorias = {}; // Controla qué acordeón está cerrado
     </script>
 
+    <!-- HEADER LIMPIO -->
     <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0 z-10 relative">
-        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V8.4</h1>
+        <h1 class="text-xl font-extrabold truncate tracking-tight flex-1">📦 Mi Inventario</h1>
         <div class="flex gap-2">
-            <button onclick="toggleBuscador()" class="bg-blue-400 px-2 py-1 rounded text-xs shadow flex items-center justify-center">🔍</button>
-            <button onclick="cargarDesdeNube()" class="bg-blue-800 px-2 py-1 rounded text-xs shadow flex items-center gap-1">☁️ Sync</button>
-            <button onclick="abrirModalTexto()" class="bg-green-500 px-2 py-1 rounded text-xs shadow flex items-center">📝 Texto</button>
-            <label class="bg-purple-500 px-2 py-1 rounded text-xs shadow cursor-pointer flex items-center">
-                📷
-                <input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarImagenIA(this)">
+            <button onclick="toggleBuscador()" class="bg-blue-700 hover:bg-blue-500 w-9 h-9 rounded-full shadow-inner flex items-center justify-center text-sm transition">🔍</button>
+            <button onclick="cargarDesdeNube()" class="bg-blue-800 hover:bg-blue-700 w-9 h-9 rounded-full shadow flex items-center justify-center text-sm transition">☁️</button>
+            <button onclick="abrirModalTexto()" class="bg-green-500 hover:bg-green-400 w-9 h-9 rounded-full shadow flex items-center justify-center text-sm transition">📝</button>
+            <label class="bg-purple-500 hover:bg-purple-400 w-9 h-9 rounded-full shadow cursor-pointer flex items-center justify-center text-sm transition">
+                📷<input type="file" accept="image/*" capture="environment" class="hidden" onchange="procesarImagenIA(this)">
             </label>
         </div>
     </div>
@@ -45,26 +55,43 @@
     <!-- Buscador Flotante -->
     <div id="contenedor-buscador" class="hidden bg-blue-700 p-2 shrink-0 transition-all duration-300 shadow-md">
         <div class="relative">
-            <input type="text" id="input-buscador" oninput="renderizar()" placeholder="Buscar producto o categoría..." class="w-full border-none rounded-lg pl-3 pr-8 py-2 text-sm text-gray-800 focus:outline-none shadow-inner">
-            <button onclick="toggleBuscador()" class="absolute right-2 top-1.5 text-gray-400 font-bold text-lg leading-none">&times;</button>
+            <input type="text" id="input-buscador" oninput="renderizar()" placeholder="Buscar producto o categoría..." class="w-full border-none rounded-full pl-4 pr-10 py-2.5 text-sm text-gray-800 focus:outline-none shadow-inner bg-blue-50">
+            <button onclick="toggleBuscador()" class="absolute right-3 top-2 text-gray-400 font-bold text-xl leading-none">&times;</button>
         </div>
     </div>
 
-    <div class="flex bg-white shadow-sm shrink-0 text-sm">
-        <button id="tab-stock" onclick="cambiarTab('stock')" class="flex-1 py-3 text-center tab-active">📦 Stock</button>
-        <button id="tab-lista" onclick="cambiarTab('lista')" class="flex-1 py-3 text-center tab-inactive">🛒 Comprar</button>
+    <div class="flex bg-white shadow-sm shrink-0 text-sm z-0 relative">
+        <button id="tab-stock" onclick="cambiarTab('stock')" class="flex-1 py-3.5 text-center tab-active">📦 Stock General</button>
+        <button id="tab-lista" onclick="cambiarTab('lista')" class="flex-1 py-3.5 text-center tab-inactive bg-gray-50">🛒 Para Comprar</button>
     </div>
 
     <div class="flex-1 overflow-y-auto p-3">
         <div id="sec-stock" class="block">
-            <button type="button" onclick="document.getElementById('contenedor-form-stock').classList.toggle('hidden')" class="w-full mb-3 bg-white text-blue-600 border border-blue-200 py-2 rounded-lg font-bold shadow-sm flex justify-center items-center gap-2">
+            
+            <!-- DASHBOARD DE SALUD (MINI TARJETAS INTERACTIVAS) -->
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <div id="btn-filtro-suficiente" onclick="toggleFiltro('suficiente')" class="cursor-pointer bg-white rounded-xl p-2 shadow-sm border border-gray-100 flex flex-col items-center justify-center transition-all">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Suficiente</span>
+                    <span class="text-xl font-black text-green-500" id="dash-ok">0</span>
+                </div>
+                <div id="btn-filtro-alerta" onclick="toggleFiltro('alerta')" class="cursor-pointer bg-white rounded-xl p-2 shadow-sm border border-gray-100 flex flex-col items-center justify-center transition-all">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Alerta</span>
+                    <span class="text-xl font-black text-yellow-500" id="dash-alerta">0</span>
+                </div>
+                <div id="btn-filtro-agotado" onclick="toggleFiltro('agotado')" class="cursor-pointer bg-white rounded-xl p-2 shadow-sm border border-gray-100 flex flex-col items-center justify-center transition-all">
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Agotado</span>
+                    <span class="text-xl font-black text-red-500" id="dash-agotado">0</span>
+                </div>
+            </div>
+
+            <button type="button" onclick="document.getElementById('contenedor-form-stock').classList.toggle('hidden')" class="w-full mb-2 bg-white text-blue-600 border border-blue-200 py-3 rounded-xl font-bold shadow-sm flex justify-center items-center gap-2 active:bg-blue-50 transition">
                 ➕ Cargar Producto Manualmente
             </button>
-            <div id="contenedor-form-stock" class="hidden">
-                <form id="form-add-stock" class="mb-4 bg-white p-3 rounded-lg shadow-sm border-l-4 border-blue-500" onsubmit="agregarProductoManual(event)">
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" id="nombre-stock" placeholder="Ej. Tomates o Fideos" class="flex-1 border rounded px-2 py-1.5 text-sm" required>
-                        <select id="categoria-stock" class="border rounded px-2 py-1.5 text-sm w-32">
+            <div id="contenedor-form-stock" class="hidden mb-4">
+                <form id="form-add-stock" class="bg-white p-4 rounded-xl shadow-md border-t-4 border-blue-500" onsubmit="agregarProductoManual(event)">
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="nombre-stock" placeholder="Ej. Tomates o Fideos" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:border-blue-400 transition" required>
+                        <select id="categoria-stock" class="border border-gray-200 rounded-lg px-2 py-2 text-sm w-36 bg-gray-50 focus:bg-white">
                             <option value="Almacén">Almacén</option>
                             <option value="Carnicería">Carnicería</option>
                             <option value="Fiambrería">Fiambrería</option>
@@ -81,67 +108,65 @@
                             <option value="Otros">Otros</option>
                         </select>
                     </div>
-                    <div class="flex gap-2 items-center mb-3">
+                    <div class="flex gap-2 items-center mb-4">
                         <div class="flex-1">
-                            <label class="text-[10px] text-gray-400 font-bold uppercase block">Cantidad</label>
-                            <input type="number" step="any" id="cant-stock" value="1" min="0" class="w-full border rounded px-2 py-1 text-sm text-center" required>
+                            <label class="text-[10px] text-gray-400 font-bold uppercase block ml-1 mb-1">Cantidad</label>
+                            <input type="number" step="any" id="cant-stock" value="1" min="0" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-center bg-gray-50" required>
                         </div>
-                        <div class="w-20">
-                            <label class="text-[10px] text-gray-400 font-bold uppercase block">Medida</label>
-                            <select id="unidad-stock" class="w-full border rounded px-2 py-1 text-sm">
+                        <div class="w-24">
+                            <label class="text-[10px] text-gray-400 font-bold uppercase block ml-1 mb-1">Medida</label>
+                            <select id="unidad-stock" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm bg-gray-50">
                                 <option value="unid">Unid.</option>
                                 <option value="kg">Kg</option>
                                 <option value="gs">Gs</option>
                             </select>
                         </div>
-                        <div class="w-20">
-                            <label class="text-[10px] text-gray-400 font-bold uppercase block">Mínimo</label>
-                            <input type="number" step="any" id="min-stock" value="1" min="0" class="w-full border rounded px-2 py-1 text-sm text-center" required>
+                        <div class="w-24">
+                            <label class="text-[10px] text-gray-400 font-bold uppercase block ml-1 mb-1">Mínimo</label>
+                            <input type="number" step="any" id="min-stock" value="1" min="0" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-center bg-gray-50" required>
                         </div>
                     </div>
-                    <div class="flex justify-between items-center bg-gray-50 p-2 rounded border">
-                        <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                    <div class="flex justify-between items-center bg-blue-50 p-3 rounded-lg border border-blue-100">
+                        <label class="flex items-center gap-2 text-xs font-bold text-blue-900 cursor-pointer">
                             <input type="checkbox" id="historial-stock" class="w-4 h-4 text-blue-600 rounded">
-                            Registrar también en Historial
+                            Registrar en Historial
                         </label>
-                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md">💾 Guardar</button>
+                        <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-blue-700 transition">Guardar</button>
                     </div>
                 </form>
             </div>
-            <div id="lista-stock" class="space-y-3 pb-6"></div>
+            
+            <div id="lista-stock" class="space-y-4 pb-6 mt-2"></div>
         </div>
 
         <div id="sec-lista" class="hidden">
-             <button type="button" onclick="document.getElementById('contenedor-form-compra').classList.toggle('hidden')" class="w-full mb-3 bg-white text-blue-600 border border-blue-200 py-2 rounded-lg font-bold shadow-sm flex justify-center items-center gap-2">
+             <button type="button" onclick="document.getElementById('contenedor-form-compra').classList.toggle('hidden')" class="w-full mb-3 bg-white text-blue-600 border border-blue-200 py-3 rounded-xl font-bold shadow-sm flex justify-center items-center gap-2 active:bg-blue-50 transition">
                 ➕ Agregar Faltante Manualmente
             </button>
-            <div id="contenedor-form-compra" class="hidden">
-                <form id="form-add-compra" class="mb-4 bg-white p-3 rounded-lg shadow-sm border-l-4 border-blue-500" onsubmit="agregarCompraManual(event)">
-                    <div class="flex gap-2 mb-2">
-                        <input type="text" id="nombre-compra" placeholder="Ej. Lavandina" class="flex-1 border rounded px-2 py-1.5 text-sm" required>
+            <div id="contenedor-form-compra" class="hidden mb-4">
+                <form id="form-add-compra" class="bg-white p-4 rounded-xl shadow-md border-t-4 border-blue-500" onsubmit="agregarCompraManual(event)">
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="nombre-compra" placeholder="Ej. Lavandina" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 focus:bg-white focus:outline-none" required>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <p class="text-xs text-gray-400 italic">Se agregará con cantidad 0.</p>
-                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-bold shadow-md">💾 Guardar Faltante</button>
+                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border">
+                        <p class="text-[10px] text-gray-500 font-semibold uppercase">Se agregará con cantidad 0.</p>
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md">Guardar</button>
                     </div>
                 </form>
             </div>
-            <div class="mb-2 flex justify-between items-end">
-                <p class="text-sm text-gray-600 font-bold">🛒 Tu Lista de Compras:</p>
-            </div>
-            <div id="lista-compras" class="space-y-2 pb-6"></div>
+            <div id="lista-compras" class="space-y-4 pb-6 mt-2"></div>
         </div>
     </div>
 
     <!-- Modales -->
-    <div id="modal-editar" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white p-5 rounded-xl w-full max-w-sm shadow-xl">
-            <h2 class="font-bold text-lg mb-4 border-b pb-2">✏️ Editar Producto</h2>
+    <div id="modal-editar" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm transition-opacity">
+        <div class="bg-white p-6 rounded-2xl w-full max-w-sm shadow-2xl">
+            <h2 class="font-black text-xl mb-5 text-gray-800 flex items-center gap-2">✏️ Editar Producto</h2>
             <input type="hidden" id="edit-id">
-            <label class="block text-sm font-semibold mb-1 text-gray-600">Nombre</label>
-            <input type="text" id="edit-nombre" class="w-full border rounded-lg p-2 mb-3 bg-gray-50">
-            <label class="block text-sm font-semibold mb-1 text-gray-600">Categoría</label>
-            <select id="edit-categoria" class="w-full border rounded-lg p-2 mb-3 bg-gray-50">
+            <label class="block text-[10px] font-bold uppercase mb-1 text-gray-500 ml-1">Nombre</label>
+            <input type="text" id="edit-nombre" class="w-full border border-gray-200 rounded-xl p-2.5 mb-4 bg-gray-50 text-gray-800 font-semibold focus:outline-none focus:border-blue-400">
+            <label class="block text-[10px] font-bold uppercase mb-1 text-gray-500 ml-1">Categoría</label>
+            <select id="edit-categoria" class="w-full border border-gray-200 rounded-xl p-2.5 mb-4 bg-gray-50 text-gray-800 font-semibold focus:outline-none focus:border-blue-400">
                 <option value="Almacén">Almacén</option>
                 <option value="Carnicería">Carnicería</option>
                 <option value="Fiambrería">Fiambrería</option>
@@ -157,66 +182,66 @@
                 <option value="Congelados">Congelados</option>
                 <option value="Otros">Otros</option>
             </select>
-            <div class="flex gap-2 mb-3">
+            <div class="flex gap-2 mb-6">
                 <div class="flex-1">
-                    <label class="block text-xs font-semibold mb-1 text-gray-600">Stock Actual</label>
-                    <input type="number" step="any" id="edit-cantidad" class="w-full border rounded-lg p-2 bg-gray-50 text-center">
+                    <label class="block text-[10px] font-bold uppercase mb-1 text-gray-500 ml-1">Stock</label>
+                    <input type="number" step="any" id="edit-cantidad" class="w-full border border-gray-200 rounded-xl p-2.5 bg-gray-50 text-center font-bold focus:outline-none focus:border-blue-400">
                 </div>
                 <div class="w-24">
-                    <label class="block text-xs font-semibold mb-1 text-gray-600">Medida</label>
-                    <select id="edit-unidad" class="w-full border rounded-lg p-2 bg-gray-50">
+                    <label class="block text-[10px] font-bold uppercase mb-1 text-gray-500 ml-1">Medida</label>
+                    <select id="edit-unidad" class="w-full border border-gray-200 rounded-xl p-2.5 bg-gray-50 font-semibold focus:outline-none focus:border-blue-400">
                         <option value="unid">Unid.</option>
                         <option value="kg">Kg</option>
                         <option value="gs">Gs</option>
                     </select>
                 </div>
                 <div class="w-24">
-                    <label class="block text-xs font-semibold mb-1 text-gray-600">Alerta Mín.</label>
-                    <input type="number" step="any" id="edit-minimo" class="w-full border rounded-lg p-2 bg-gray-50 text-center">
+                    <label class="block text-[10px] font-bold uppercase mb-1 text-gray-500 ml-1">Alerta Mín.</label>
+                    <input type="number" step="any" id="edit-minimo" class="w-full border border-gray-200 rounded-xl p-2.5 bg-gray-50 text-center font-bold focus:outline-none focus:border-blue-400">
                 </div>
             </div>
-            <div class="flex justify-between items-center mt-6">
-                <button onclick="eliminarDesdeModal()" class="text-red-500 text-sm font-bold px-2 py-2">🗑️ Borrar</button>
+            <div class="flex justify-between items-center pt-2">
+                <button onclick="eliminarDesdeModal()" class="text-red-500 text-sm font-bold p-2 bg-red-50 rounded-lg hover:bg-red-100 transition">🗑️ Borrar</button>
                 <div class="flex gap-2">
-                    <button onclick="cerrarModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-bold">Cancelar</button>
-                    <button onclick="guardarEdicion()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold">Guardar</button>
+                    <button onclick="cerrarModal()" class="px-5 py-2.5 bg-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-300 transition">Cancelar</button>
+                    <button onclick="guardarEdicion()" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-blue-700 transition">Guardar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="modal-texto" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
-        <div class="bg-white p-5 rounded-xl w-full max-w-sm shadow-xl flex flex-col h-2/3">
-            <h2 class="font-bold text-lg mb-2">📝 Carga Masiva (Texto)</h2>
-            <p class="text-xs text-gray-500 mb-2">Escribe o dicta tu lista.</p>
-            <textarea id="texto-masivo" class="w-full flex-1 border rounded-lg p-3 text-sm bg-gray-50 mb-4" placeholder="Ej: Comprar 1.5 kg de tomates..."></textarea>
+    <div id="modal-texto" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-2xl w-full max-w-sm shadow-2xl flex flex-col h-2/3">
+            <h2 class="font-black text-xl mb-1 text-gray-800">📝 Carga Masiva (Texto)</h2>
+            <p class="text-xs text-gray-500 mb-4 font-semibold">Escribe o dicta tu lista de compras.</p>
+            <textarea id="texto-masivo" class="w-full flex-1 border border-gray-200 rounded-xl p-4 text-sm bg-gray-50 mb-4 focus:outline-none focus:border-blue-400 transition" placeholder="Ej: Comprar 1.5 kg de tomates, 2 leches y 300 gs de jamón..."></textarea>
             <div class="flex justify-end gap-2">
-                <button onclick="cerrarModalTexto()" class="px-4 py-2 bg-gray-200 rounded-lg text-sm font-bold">Cancelar</button>
-                <button onclick="procesarTextoIA()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold shadow-md">Analizar</button>
+                <button onclick="cerrarModalTexto()" class="px-5 py-2.5 bg-gray-200 text-gray-700 rounded-xl text-sm font-bold">Cancelar</button>
+                <button onclick="procesarTextoIA()" class="px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold shadow-lg">Analizar</button>
             </div>
         </div>
     </div>
 
-    <div id="modal-verificacion" class="hidden fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center p-4 z-50">
-        <div class="bg-white p-4 rounded-xl w-full max-w-md shadow-xl max-h-full flex flex-col">
-            <h2 class="font-bold text-lg mb-1">🤖 Revisión de IA</h2>
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-2 mb-3 rounded">
-                <label class="flex items-center gap-2 text-xs font-bold text-blue-800 cursor-pointer">
-                    <input type="checkbox" id="toggle-historial-ia" class="w-4 h-4">
+    <div id="modal-verificacion" class="hidden fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white p-5 rounded-2xl w-full max-w-md shadow-2xl max-h-[90%] flex flex-col">
+            <h2 class="font-black text-xl mb-3 text-gray-800 flex items-center gap-2">🤖 Revisión de IA</h2>
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4 rounded-r-lg">
+                <label class="flex items-center gap-2 text-sm font-bold text-blue-900 cursor-pointer">
+                    <input type="checkbox" id="toggle-historial-ia" class="w-5 h-5 text-blue-600 rounded">
                     🛒 Registrar todo como compra (Historial)
                 </label>
             </div>
-            <div id="lista-verificacion" class="flex-1 overflow-y-auto space-y-3 p-1 mb-4 border border-gray-200 rounded bg-gray-50"></div>
-            <div class="flex justify-between items-center shrink-0">
-                <button onclick="cerrarModalVerificacion()" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-bold">Descartar</button>
-                <button onclick="guardarVerificados()" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-md">Confirmar</button>
+            <div id="lista-verificacion" class="flex-1 overflow-y-auto space-y-3 pr-1 mb-4 rounded"></div>
+            <div class="flex justify-between items-center shrink-0 pt-2 border-t border-gray-100">
+                <button onclick="cerrarModalVerificacion()" class="px-5 py-3 bg-gray-200 text-gray-700 rounded-xl text-sm font-bold">Descartar</button>
+                <button onclick="guardarVerificados()" class="px-5 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg">Confirmar e Ingresar</button>
             </div>
         </div>
     </div>
 
-    <div id="modal-loading" class="hidden fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-[60]">
-        <div class="loader mb-4"></div>
-        <p id="loading-text" class="text-white font-bold text-lg">Procesando...</p>
+    <div id="modal-loading" class="hidden fixed inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center z-[60] backdrop-blur-md">
+        <div class="loader mb-5"></div>
+        <p id="loading-text" class="text-white font-extrabold text-xl tracking-wide">Procesando...</p>
     </div>
 
     <script>
@@ -265,9 +290,7 @@
             for (let item of inventario) {
                 let itemLimpio = limpiarNombre(item.nombre);
                 if (itemLimpio === nombreLimpio) return item;
-                // Coincidencia Inteligente si una palabra contiene a la otra
                 if (itemLimpio.includes(nombreLimpio) || nombreLimpio.includes(itemLimpio)) return item; 
-                
                 let similitud = calcularSimilitud(itemLimpio, nombreLimpio);
                 if (similitud > maxSimilitud) { maxSimilitud = similitud; mejorCandidato = item; }
             }
@@ -275,7 +298,6 @@
             return null;
         }
 
-        // --- SISTEMA DE DATOS Y AUTOCORRECCIÓN MÁGICA ---
         async function cargarDesdeNube() {
             mostrarLoading(true, "Descargando inventario...");
             try {
@@ -285,24 +307,10 @@
                     inventario = data.inventario.map(i => {
                         let u = String(i.unidad || '').toLowerCase().trim();
                         let m = parseFloat(i.minimo);
-                        
-                        // AUTOCORRECCIÓN: Si la unidad dice "1" o "0", recupera el mínimo y arregla la unidad
-                        if (!isNaN(u) && u !== '') {
-                            m = parseFloat(u);
-                            u = 'unid';
-                        } else if (!['unid', 'kg', 'gs', 'g'].includes(u)) {
-                            u = 'unid';
-                        }
+                        if (!isNaN(u) && u !== '') { m = parseFloat(u); u = 'unid'; } 
+                        else if (!['unid', 'kg', 'gs', 'g'].includes(u)) { u = 'unid'; }
                         if (isNaN(m)) m = 0;
-
-                        return {
-                            id: Number(i.id) || Date.now() + Math.random(),
-                            nombre: i.nombre || '',
-                            categoria: i.categoria || 'Otros',
-                            cantidad: parseFloat(i.cantidad) || 0,
-                            unidad: u,
-                            minimo: m
-                        };
+                        return { id: Number(i.id) || Date.now() + Math.random(), nombre: i.nombre || '', categoria: i.categoria || 'Otros', cantidad: parseFloat(i.cantidad) || 0, unidad: u, minimo: m };
                     });
                     renderizar();
                 } else if(data.error) throw new Error(data.error);
@@ -329,12 +337,11 @@
             fetch(URL_APPS_SCRIPT, { method: 'POST', body: JSON.stringify({ token: TOKEN, accion: 'historial', compra: { nombre, categoria, cantidad, unidad } }) }).catch(e => {});
         }
 
-        // --- MANEJO DE INTERFAZ (UI) ---
         function cambiarTab(tab) {
             document.getElementById('sec-stock').style.display = tab === 'stock' ? 'block' : 'none';
             document.getElementById('sec-lista').style.display = tab === 'lista' ? 'block' : 'none';
-            document.getElementById('tab-stock').className = tab === 'stock' ? 'flex-1 py-3 text-center tab-active' : 'flex-1 py-3 text-center tab-inactive bg-gray-50';
-            document.getElementById('tab-lista').className = tab === 'lista' ? 'flex-1 py-3 text-center tab-active' : 'flex-1 py-3 text-center tab-inactive bg-gray-50';
+            document.getElementById('tab-stock').className = tab === 'stock' ? 'flex-1 py-3.5 text-center tab-active bg-white' : 'flex-1 py-3.5 text-center tab-inactive bg-gray-50 border-b border-gray-200';
+            document.getElementById('tab-lista').className = tab === 'lista' ? 'flex-1 py-3.5 text-center tab-active bg-white' : 'flex-1 py-3.5 text-center tab-inactive bg-gray-50 border-b border-gray-200';
         }
 
         function toggleBuscador() {
@@ -344,7 +351,17 @@
             else { document.getElementById('input-buscador').value = ''; renderizar(); }
         }
 
-        // --- ACCIONES DEL USUARIO ---
+        // CONTROL DE FILTROS Y ACORDEONES
+        function toggleFiltro(estado) {
+            filtroActual = (filtroActual === estado) ? 'todos' : estado;
+            renderizar();
+        }
+
+        function toggleCategoria(cat) {
+            estadoCategorias[cat] = estadoCategorias[cat] === undefined ? false : !estadoCategorias[cat];
+            renderizar();
+        }
+
         function agregarProductoManual(e) {
             e.preventDefault();
             let nombre = document.getElementById('nombre-stock').value.trim();
@@ -431,7 +448,6 @@
             }
         }
 
-        // --- MODALES DE EDICIÓN ---
         function abrirModal(id) {
             const item = inventario.find(i => Number(i.id) === Number(id));
             if (!item) return;
@@ -464,7 +480,6 @@
             }
         }
 
-        // --- IA Y PROCESAMIENTO ---
         function abrirModalTexto() { document.getElementById('texto-masivo').value = ''; document.getElementById('modal-texto').classList.remove('hidden'); }
         function cerrarModalTexto() { document.getElementById('modal-texto').classList.add('hidden'); }
         function mostrarLoading(estado, texto = "Procesando...") {
@@ -520,41 +535,38 @@
             dibujarListaVerificacion(); document.getElementById('modal-verificacion').classList.remove('hidden');
         }
 
-        // SECCIÓN ACTUALIZADA CON CONTROL ANTIDUPLICADOS INTERACTIVO
         function dibujarListaVerificacion() {
             const container = document.getElementById('lista-verificacion');
             container.innerHTML = '';
             itemsTemporales.forEach((item, index) => {
-                
-                // CONTROL ANTIDUPLICADOS INTERACTIVO
                 let existente = buscarProductoSimilar(item.nombre);
                 let controlDuplicado = existente 
-                    ? `<label class="flex items-center gap-1.5 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-1.5 rounded shadow-sm cursor-pointer mt-1 border border-blue-200">
-                        <input type="checkbox" checked onchange="itemsTemporales[${index}].forzarNuevo = !this.checked" class="w-3.5 h-3.5 text-blue-600 rounded">
+                    ? `<label class="flex items-center gap-2 bg-blue-50 text-blue-900 text-xs font-bold px-2.5 py-2 rounded-lg shadow-sm cursor-pointer mt-2 border border-blue-200 transition active:bg-blue-100">
+                        <input type="checkbox" checked onchange="itemsTemporales[${index}].forzarNuevo = !this.checked" class="w-4 h-4 text-blue-600 rounded">
                         🔄 Fusionar stock con: "${existente.nombre}"
                        </label>`
-                    : `<span class="bg-green-50 text-green-800 text-[10px] font-bold px-2 py-1.5 rounded shadow-sm mt-1 inline-block border border-green-200">✨ Producto Nuevo</span>`;
+                    : `<span class="bg-green-50 text-green-800 text-xs font-bold px-2.5 py-2 rounded-lg shadow-sm mt-2 inline-block border border-green-200">✨ Producto Nuevo</span>`;
 
                 container.innerHTML += `
-                    <div class="bg-white p-2.5 border-b flex flex-col gap-1 relative pb-3">
-                        <button onclick="eliminarItemTemporal(${index})" class="absolute top-2 right-2 text-red-500 bg-red-50 rounded px-2 font-bold hover:bg-red-100">X</button>
+                    <div class="bg-white p-3 border border-gray-100 rounded-xl flex flex-col gap-1 relative pb-3 shadow-sm mb-2">
+                        <button onclick="eliminarItemTemporal(${index})" class="absolute top-2 right-2 text-red-500 bg-red-50 rounded-lg w-7 h-7 flex items-center justify-center font-bold hover:bg-red-100">X</button>
                         <div class="pr-8">
-                            <label class="text-[10px] text-gray-400 font-bold uppercase">Producto</label>
-                            <input type="text" class="w-full border-b border-gray-300 text-sm py-1 font-semibold text-gray-900 bg-transparent focus:border-blue-500 focus:outline-none" value="${item.nombre}" onchange="itemsTemporales[${index}].nombre=this.value">
+                            <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">Producto</label>
+                            <input type="text" class="w-full border-b border-gray-200 text-sm py-1 font-bold text-gray-900 bg-transparent focus:border-blue-500 focus:outline-none" value="${item.nombre}" onchange="itemsTemporales[${index}].nombre=this.value">
                             ${controlDuplicado}
                         </div>
-                        <div class="flex gap-2 items-end mt-1">
+                        <div class="flex gap-2 items-end mt-2">
                             <div class="flex-1">
-                                <label class="text-[10px] text-gray-400 font-bold uppercase">Categoría</label>
-                                <input type="text" class="w-full border-b border-gray-300 text-xs py-1 bg-transparent text-gray-600" value="${item.categoria}" readonly>
+                                <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">Categoría</label>
+                                <input type="text" class="w-full border-b border-gray-200 text-xs py-1 bg-transparent text-gray-600 font-semibold" value="${item.categoria}" readonly>
                             </div>
                             <div class="w-16">
-                                <label class="text-[10px] text-gray-400 font-bold uppercase">Cant.</label>
-                                <input type="number" step="any" class="w-full border-b border-gray-400 text-sm py-1 text-center bg-transparent font-bold text-blue-600" value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseFloat(this.value)||0">
+                                <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">Cant.</label>
+                                <input type="number" step="any" class="w-full border-b border-gray-400 text-sm py-1 text-center bg-transparent font-black text-blue-600" value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseFloat(this.value)||0">
                             </div>
                             <div class="w-16">
-                                <label class="text-[10px] text-gray-400 font-bold uppercase">U.</label>
-                                <input type="text" class="w-full border-b border-gray-300 text-xs py-1 text-center bg-transparent text-gray-600" value="${item.unidad}" readonly>
+                                <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">U.</label>
+                                <input type="text" class="w-full border-b border-gray-200 text-xs py-1 text-center bg-transparent text-gray-600 font-semibold" value="${item.unidad}" readonly>
                             </div>
                         </div>
                     </div>
@@ -569,9 +581,7 @@
             const vaAHistorial = document.getElementById('toggle-historial-ia').checked;
             itemsTemporales.forEach(item => {
                 if(item.nombre.trim() !== '') {
-                    // Si el usuario destildó la caja, forzarNuevo será true y esquivará el filtro anti-duplicados
                     let existente = item.forzarNuevo ? null : buscarProductoSimilar(item.nombre);
-                    
                     if (existente) {
                         existente.cantidad += item.cantidad;
                         if(vaAHistorial && item.cantidad > 0) enviarAHistorialBackground(existente.nombre, existente.categoria, item.cantidad, existente.unidad);
@@ -581,12 +591,10 @@
                     }
                 }
             });
-            guardarDatosConLoader(); 
-            cerrarModalVerificacion(); 
-            cambiarTab('stock');
+            guardarDatosConLoader(); cerrarModalVerificacion(); cambiarTab('stock');
         }
 
-        // --- RENDERIZADO VISUAL ---
+        // --- RENDERIZADO VISUAL V8.6 ---
         function renderizar() {
             const listaStock = document.getElementById('lista-stock');
             const listaCompras = document.getElementById('lista-compras');
@@ -594,72 +602,128 @@
             
             listaStock.innerHTML = ''; listaCompras.innerHTML = '';
             
-            const invFiltrado = inventario.filter(item => { if (termino && !item.nombre.toLowerCase().includes(termino) && !(item.categoria || '').toLowerCase().includes(termino)) return false; return true; });
+            let countOK = 0, countAlerta = 0, countAgotado = 0;
+            
+            // 1. Filtrar búsqueda por texto
+            let invFiltrado = inventario.filter(item => { if (termino && !item.nombre.toLowerCase().includes(termino) && !(item.categoria || '').toLowerCase().includes(termino)) return false; return true; });
             const invOrdenado = [...invFiltrado].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-            invOrdenado.forEach(item => {
-                const faltanteTotal = item.cantidad <= item.minimo;
-                const alertaAmarilla = item.cantidad > item.minimo && item.cantidad <= (item.minimo + 1);
-                
-                let borderClass = "border-gray-300";
-                let bgClass = "bg-white";
-                
-                if (faltanteTotal) {
-                    borderClass = "border-red-600";
-                    bgClass = "bg-red-200"; // Rojo sólido más intenso
-                } else if (alertaAmarilla) {
-                    borderClass = "border-yellow-400";
-                    bgClass = "bg-yellow-50"; 
-                }
+            // ESTILOS VISUALES DE LOS BOTONES DE FILTRO
+            document.getElementById('btn-filtro-suficiente').className = filtroActual === 'suficiente' ? "cursor-pointer bg-green-50 rounded-xl p-2 shadow-sm border-2 border-green-400 flex flex-col items-center justify-center transition-all transform scale-105" : "cursor-pointer bg-white rounded-xl p-2 shadow-sm border border-gray-100 flex flex-col items-center justify-center transition-all hover:bg-gray-50";
+            document.getElementById('btn-filtro-alerta').className = filtroActual === 'alerta' ? "cursor-pointer bg-yellow-50 rounded-xl p-2 shadow-sm border-2 border-yellow-400 flex flex-col items-center justify-center transition-all transform scale-105" : "cursor-pointer bg-white rounded-xl p-2 shadow-sm border border-gray-100 flex flex-col items-center justify-center transition-all hover:bg-gray-50";
+            document.getElementById('btn-filtro-agotado').className = filtroActual === 'agotado' ? "cursor-pointer bg-red-50 rounded-xl p-2 shadow-sm border-2 border-red-400 flex flex-col items-center justify-center transition-all transform scale-105" : "cursor-pointer bg-white rounded-xl p-2 shadow-sm border border-gray-100 flex flex-col items-center justify-center transition-all hover:bg-gray-50";
 
-                // Ajuste de los botones +/- según la unidad (Gs suma de a 100, Kg de a 0.5, Unid de a 1)
-                let stepUp = item.unidad === 'kg' ? 0.5 : (item.unidad === 'gs' || item.unidad === 'g' ? 100 : 1);
-                let stepDown = item.unidad === 'kg' ? -0.5 : (item.unidad === 'gs' || item.unidad === 'g' ? -100 : -1);
+            // AGRUPACIÓN POR CATEGORÍAS (ACORDEONES)
+            const categoriasUnicas = [...new Set(invOrdenado.map(i => i.categoria || 'Otros'))].sort();
 
+            categoriasUnicas.forEach(cat => {
+                // Primero filtramos los items de esta categoría
+                let itemsCat = invOrdenado.filter(i => (i.categoria || 'Otros') === cat);
+                
+                // Procesar recuentos globales antes de aplicar filtro visual de estado
+                itemsCat.forEach(item => {
+                    if (item.cantidad <= item.minimo) countAgotado++;
+                    else if (item.cantidad > item.minimo && item.cantidad <= (item.minimo + 1)) countAlerta++;
+                    else countOK++;
+                });
+
+                // Si hay un filtro activo, escondemos los que no aplican
+                if (filtroActual === 'suficiente') itemsCat = itemsCat.filter(i => i.cantidad > (i.minimo + 1));
+                if (filtroActual === 'alerta') itemsCat = itemsCat.filter(i => i.cantidad > i.minimo && i.cantidad <= (i.minimo + 1));
+                if (filtroActual === 'agotado') itemsCat = itemsCat.filter(i => i.cantidad <= i.minimo);
+
+                if (itemsCat.length === 0) return; // Si la categoría quedó vacía tras el filtro, no mostrarla
+
+                const emoji = iconosCat[cat] || "📦";
+                const estaAbierto = estadoCategorias[cat] !== false; // Abierto por defecto
+                const flecha = estaAbierto ? '▼' : '▶';
+                
+                // Título de categoría (Acordeón)
                 listaStock.innerHTML += `
-                    <div class="flex flex-col border p-3 rounded-lg shadow-sm mb-2 ${borderClass} ${bgClass}">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <p class="font-bold text-gray-900 leading-tight">${item.nombre}</p>
-                                <p class="text-xs text-gray-700">${item.categoria || 'Otros'} | Mínimo: ${item.minimo} ${item.unidad}</p>
-                            </div>
-                            <button onclick="abrirModal(${item.id})" class="text-gray-500 p-1 text-lg">✏️</button>
-                        </div>
-                        <div class="flex justify-between items-center mt-2 border-t pt-2 border-gray-300 border-opacity-50">
-                            <div class="flex-1 cursor-pointer" onclick="setStockManual(${item.id})">
-                                <span class="text-sm font-semibold text-gray-800 bg-white px-2 py-1 rounded shadow-sm border border-gray-300">Stock: ${item.cantidad} ${item.unidad}</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <button onclick="modificarStockUI(${item.id}, ${stepDown})" class="w-10 h-10 rounded-full bg-white bg-opacity-70 text-gray-800 border border-gray-300 font-bold text-lg flex items-center justify-center active:bg-gray-200 transition">-</button>
-                                <button onclick="modificarStockUI(${item.id}, ${stepUp})" class="w-10 h-10 rounded-full bg-blue-600 text-white font-bold text-lg flex items-center justify-center active:bg-blue-700 shadow-md transition">+</button>
-                            </div>
-                        </div>
+                    <div onclick="toggleCategoria('${cat}')" class="font-extrabold text-gray-700 mt-5 mb-2 flex items-center justify-between text-[15px] border-b-2 border-gray-200 pb-1.5 cursor-pointer select-none active:text-blue-600 transition px-1">
+                        <div class="flex items-center gap-2">${emoji} ${cat}</div>
+                        <span class="text-xs text-gray-400">${flecha}</span>
                     </div>
                 `;
+
+                if (estaAbierto) {
+                    itemsCat.forEach(item => {
+                        const faltanteTotal = item.cantidad <= item.minimo;
+                        const alertaAmarilla = item.cantidad > item.minimo && item.cantidad <= (item.minimo + 1);
+                        
+                        let borderSide = "bg-gray-300";
+                        let bgClass = "bg-white";
+                        
+                        if (faltanteTotal) { borderSide = "bg-red-500"; bgClass = "bg-red-50"; } 
+                        else if (alertaAmarilla) { borderSide = "bg-yellow-400"; bgClass = "bg-yellow-50"; }
+
+                        let stepUp = item.unidad === 'kg' ? 0.5 : (item.unidad === 'gs' || item.unidad === 'g' ? 100 : 1);
+                        let stepDown = item.unidad === 'kg' ? -0.5 : (item.unidad === 'gs' || item.unidad === 'g' ? -100 : -1);
+
+                        // Tarjeta Píldora Rediseñada
+                        listaStock.innerHTML += `
+                            <div class="flex flex-col p-3.5 rounded-xl shadow-sm mb-3 border border-gray-100 relative overflow-hidden ${bgClass}">
+                                <div class="absolute left-0 top-0 bottom-0 w-1.5 ${borderSide}"></div>
+                                <div class="pl-2">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div class="flex-1 pr-2">
+                                            <p class="font-bold text-gray-900 leading-tight text-base">${item.nombre}</p>
+                                            <p class="text-xs text-gray-500 mt-0.5 font-semibold">Mínimo: ${item.minimo} ${item.unidad}</p>
+                                        </div>
+                                        <button onclick="abrirModal(${item.id})" class="text-gray-400 p-1 text-xl hover:text-blue-500 transition">⋮</button>
+                                    </div>
+                                    <div class="flex justify-end mt-1">
+                                        <div class="flex items-center bg-white rounded-full border border-gray-200 shadow-sm p-1">
+                                            <button onclick="modificarStockUI(${item.id}, ${stepDown})" class="w-10 h-10 rounded-full text-gray-600 font-bold text-xl flex items-center justify-center hover:bg-gray-100 active:bg-gray-200 transition pb-1">-</button>
+                                            <div class="px-3 cursor-pointer min-w-[5rem] text-center" onclick="setStockManual(${item.id})">
+                                                <span class="text-base font-black text-gray-800">${item.cantidad}</span>
+                                                <span class="text-xs font-bold text-gray-500 block -mt-1">${item.unidad}</span>
+                                            </div>
+                                            <button onclick="modificarStockUI(${item.id}, ${stepUp})" class="w-10 h-10 rounded-full bg-blue-600 text-white font-bold text-xl flex items-center justify-center hover:bg-blue-700 active:bg-blue-800 shadow-md transition pb-1">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
             });
 
+            // Actualizar numeración Dashboard global
+            document.getElementById('dash-ok').innerText = countOK;
+            document.getElementById('dash-alerta').innerText = countAlerta;
+            document.getElementById('dash-agotado').innerText = countAgotado;
+
+            // RENDERIZAR LISTA DE COMPRAS
             const faltantes = invOrdenado.filter(item => item.cantidad <= item.minimo);
             
             if (faltantes.length === 0) {
-                listaCompras.innerHTML = '<p class="text-center text-gray-500 mt-6 italic">¡Todo listo! No hay faltantes.</p>';
+                listaCompras.innerHTML = '<div class="text-center mt-10"><p class="text-4xl mb-3">🎉</p><p class="text-gray-500 font-bold">¡Todo listo! No hay faltantes.</p></div>';
             } else {
-                const categorias = [...new Set(faltantes.map(i => i.categoria || 'Otros'))].sort();
-                categorias.forEach(cat => {
-                    listaCompras.innerHTML += `<div class="bg-gray-200 text-gray-800 text-xs font-bold uppercase px-3 py-2 rounded shadow-sm mt-4 mb-2 flex items-center gap-1 border-l-4 border-gray-400">📍 Pasillo: ${cat}</div>`;
+                const categoriasFaltantes = [...new Set(faltantes.map(i => i.categoria || 'Otros'))].sort();
+                categoriasFaltantes.forEach(cat => {
+                    const emoji = iconosCat[cat] || "🛒";
+                    listaCompras.innerHTML += `<div class="bg-gray-800 text-white text-xs font-black uppercase tracking-wider px-3 py-2.5 rounded-lg shadow-sm mt-5 mb-3 flex items-center gap-2">${emoji} Pasillo: ${cat}</div>`;
                     
                     const itemsCat = faltantes.filter(i => (i.categoria || 'Otros') === cat);
                     itemsCat.forEach(item => {
                         const enCero = item.cantidad === 0;
-                        let etiqueta = enCero ? '<span class="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded ml-2 shadow-sm">Agotado</span>' : '<span class="bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded ml-2 shadow-sm">Faltante</span>';
+                        let etiqueta = enCero ? '<span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md ml-2 shadow-sm uppercase tracking-wide">Agotado</span>' : '<span class="bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md ml-2 shadow-sm uppercase tracking-wide">Faltante</span>';
                         
                         listaCompras.innerHTML += `
-                            <div class="flex flex-col border p-3 rounded-lg shadow-sm bg-red-50 mb-2 border-l-4 border-red-600">
-                                <div class="flex justify-between items-center mb-2">
-                                    <p class="font-bold text-gray-900 text-sm leading-tight flex-1">${item.nombre} ${etiqueta}</p>
-                                </div>
-                                <div class="flex justify-between items-center bg-white p-1.5 rounded border border-gray-200">
-                                    <p class="text-xs text-gray-700 font-semibold">Tenés: ${item.cantidad} ${item.unidad} <span class="text-gray-500 font-normal">(Min: ${item.minimo})</span></p>
-                                    <button onclick="comprarCantidadCustom(${item.id})" class="bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-md flex items-center gap-1 active:bg-green-700 transition">🛒 Comprar</button>
+                            <div class="flex flex-col border border-red-200 p-3.5 rounded-xl shadow-sm bg-red-50 mb-3 relative overflow-hidden">
+                                <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-red-500"></div>
+                                <div class="pl-2">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <p class="font-bold text-gray-900 text-base leading-tight flex-1">${item.nombre} ${etiqueta}</p>
+                                    </div>
+                                    <div class="flex justify-between items-center bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
+                                        <div>
+                                            <p class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-0.5">En Casa</p>
+                                            <p class="text-sm font-black text-gray-800">${item.cantidad} ${item.unidad} <span class="text-gray-400 font-semibold text-xs ml-1">(Mín: ${item.minimo})</span></p>
+                                        </div>
+                                        <button onclick="comprarCantidadCustom(${item.id})" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md flex items-center gap-1 active:bg-green-700 transition">🛒 Comprar</button>
+                                    </div>
                                 </div>
                             </div>
                         `;
