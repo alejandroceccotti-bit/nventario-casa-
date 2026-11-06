@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock de Casa V8.3 - Refinada</title>
+    <title>Stock de Casa V8.4 - Anti-Duplicados Interactivo</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
@@ -30,7 +30,7 @@
     </script>
 
     <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0 z-10 relative">
-        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V8.3</h1>
+        <h1 class="text-lg font-bold truncate">📦 Mi Inventario V8.4</h1>
         <div class="flex gap-2">
             <button onclick="toggleBuscador()" class="bg-blue-400 px-2 py-1 rounded text-xs shadow flex items-center justify-center">🔍</button>
             <button onclick="cargarDesdeNube()" class="bg-blue-800 px-2 py-1 rounded text-xs shadow flex items-center gap-1">☁️ Sync</button>
@@ -520,29 +520,41 @@
             dibujarListaVerificacion(); document.getElementById('modal-verificacion').classList.remove('hidden');
         }
 
+        // SECCIÓN ACTUALIZADA CON CONTROL ANTIDUPLICADOS INTERACTIVO
         function dibujarListaVerificacion() {
             const container = document.getElementById('lista-verificacion');
             container.innerHTML = '';
             itemsTemporales.forEach((item, index) => {
+                
+                // CONTROL ANTIDUPLICADOS INTERACTIVO
+                let existente = buscarProductoSimilar(item.nombre);
+                let controlDuplicado = existente 
+                    ? `<label class="flex items-center gap-1.5 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-1.5 rounded shadow-sm cursor-pointer mt-1 border border-blue-200">
+                        <input type="checkbox" checked onchange="itemsTemporales[${index}].forzarNuevo = !this.checked" class="w-3.5 h-3.5 text-blue-600 rounded">
+                        🔄 Fusionar stock con: "${existente.nombre}"
+                       </label>`
+                    : `<span class="bg-green-50 text-green-800 text-[10px] font-bold px-2 py-1.5 rounded shadow-sm mt-1 inline-block border border-green-200">✨ Producto Nuevo</span>`;
+
                 container.innerHTML += `
-                    <div class="bg-white p-2 border-b flex flex-col gap-2 relative">
-                        <button onclick="eliminarItemTemporal(${index})" class="absolute top-2 right-2 text-red-500 bg-red-50 rounded px-2">X</button>
+                    <div class="bg-white p-2.5 border-b flex flex-col gap-1 relative pb-3">
+                        <button onclick="eliminarItemTemporal(${index})" class="absolute top-2 right-2 text-red-500 bg-red-50 rounded px-2 font-bold hover:bg-red-100">X</button>
                         <div class="pr-8">
                             <label class="text-[10px] text-gray-400 font-bold uppercase">Producto</label>
-                            <input type="text" class="w-full border-b border-gray-300 text-sm py-1 font-semibold text-gray-700 bg-transparent" value="${item.nombre}" onchange="itemsTemporales[${index}].nombre=this.value">
+                            <input type="text" class="w-full border-b border-gray-300 text-sm py-1 font-semibold text-gray-900 bg-transparent focus:border-blue-500 focus:outline-none" value="${item.nombre}" onchange="itemsTemporales[${index}].nombre=this.value">
+                            ${controlDuplicado}
                         </div>
-                        <div class="flex gap-2 items-end">
+                        <div class="flex gap-2 items-end mt-1">
                             <div class="flex-1">
-                                <label class="text-[10px] text-gray-400 font-bold uppercase">Cat.</label>
-                                <input type="text" class="w-full border-b border-gray-300 text-xs py-1 bg-transparent" value="${item.categoria}" readonly>
+                                <label class="text-[10px] text-gray-400 font-bold uppercase">Categoría</label>
+                                <input type="text" class="w-full border-b border-gray-300 text-xs py-1 bg-transparent text-gray-600" value="${item.categoria}" readonly>
                             </div>
                             <div class="w-16">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase">Cant.</label>
-                                <input type="number" step="any" class="w-full border-b border-gray-300 text-sm py-1 text-center bg-transparent" value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseFloat(this.value)||0">
+                                <input type="number" step="any" class="w-full border-b border-gray-400 text-sm py-1 text-center bg-transparent font-bold text-blue-600" value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseFloat(this.value)||0">
                             </div>
                             <div class="w-16">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase">U.</label>
-                                <input type="text" class="w-full border-b border-gray-300 text-xs py-1 text-center bg-transparent" value="${item.unidad}" readonly>
+                                <input type="text" class="w-full border-b border-gray-300 text-xs py-1 text-center bg-transparent text-gray-600" value="${item.unidad}" readonly>
                             </div>
                         </div>
                     </div>
@@ -557,7 +569,9 @@
             const vaAHistorial = document.getElementById('toggle-historial-ia').checked;
             itemsTemporales.forEach(item => {
                 if(item.nombre.trim() !== '') {
-                    let existente = buscarProductoSimilar(item.nombre);
+                    // Si el usuario destildó la caja, forzarNuevo será true y esquivará el filtro anti-duplicados
+                    let existente = item.forzarNuevo ? null : buscarProductoSimilar(item.nombre);
+                    
                     if (existente) {
                         existente.cantidad += item.cantidad;
                         if(vaAHistorial && item.cantidad > 0) enviarAHistorialBackground(existente.nombre, existente.categoria, item.cantidad, existente.unidad);
@@ -567,7 +581,9 @@
                     }
                 }
             });
-            guardarDatosConLoader(); cerrarModalVerificacion(); cambiarTab('stock');
+            guardarDatosConLoader(); 
+            cerrarModalVerificacion(); 
+            cambiarTab('stock');
         }
 
         // --- RENDERIZADO VISUAL ---
