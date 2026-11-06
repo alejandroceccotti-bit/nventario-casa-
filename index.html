@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock de Casa V8.6 - Filtros y Acordeones</title>
+    <title>Stock de Casa V8.7 - Edición IA Completa</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
@@ -34,12 +34,10 @@
             "Pescadería": "🐟", "Congelados": "❄️", "Otros": "📦"
         };
 
-        // VARIABLES DE ESTADO PARA INTERFAZ
-        let filtroActual = 'todos'; // 'todos', 'suficiente', 'alerta', 'agotado'
-        let estadoCategorias = {}; // Controla qué acordeón está cerrado
+        let filtroActual = 'todos'; 
+        let estadoCategorias = {}; 
     </script>
 
-    <!-- HEADER LIMPIO -->
     <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0 z-10 relative">
         <h1 class="text-xl font-extrabold truncate tracking-tight flex-1">📦 Mi Inventario</h1>
         <div class="flex gap-2">
@@ -52,7 +50,6 @@
         </div>
     </div>
 
-    <!-- Buscador Flotante -->
     <div id="contenedor-buscador" class="hidden bg-blue-700 p-2 shrink-0 transition-all duration-300 shadow-md">
         <div class="relative">
             <input type="text" id="input-buscador" oninput="renderizar()" placeholder="Buscar producto o categoría..." class="w-full border-none rounded-full pl-4 pr-10 py-2.5 text-sm text-gray-800 focus:outline-none shadow-inner bg-blue-50">
@@ -68,7 +65,6 @@
     <div class="flex-1 overflow-y-auto p-3">
         <div id="sec-stock" class="block">
             
-            <!-- DASHBOARD DE SALUD (MINI TARJETAS INTERACTIVAS) -->
             <div class="grid grid-cols-3 gap-2 mb-4">
                 <div id="btn-filtro-suficiente" onclick="toggleFiltro('suficiente')" class="cursor-pointer bg-white rounded-xl p-2 shadow-sm border border-gray-100 flex flex-col items-center justify-center transition-all">
                     <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Suficiente</span>
@@ -248,7 +244,6 @@
         let inventario = [];
         let timerSilencioso = null;
 
-        // Limpieza y Levenshtein Estricto
         function limpiarNombre(texto) {
             if (!texto) return '';
             let limpio = texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -351,7 +346,6 @@
             else { document.getElementById('input-buscador').value = ''; renderizar(); }
         }
 
-        // CONTROL DE FILTROS Y ACORDEONES
         function toggleFiltro(estado) {
             filtroActual = (filtroActual === estado) ? 'todos' : estado;
             renderizar();
@@ -547,6 +541,11 @@
                        </label>`
                     : `<span class="bg-green-50 text-green-800 text-xs font-bold px-2.5 py-2 rounded-lg shadow-sm mt-2 inline-block border border-green-200">✨ Producto Nuevo</span>`;
 
+                // Construir las opciones de Categoría dinámicamente
+                let opcionesCategoria = Object.keys(iconosCat).map(cat => 
+                    `<option value="${cat}" ${item.categoria === cat ? 'selected' : ''}>${cat}</option>`
+                ).join('');
+
                 container.innerHTML += `
                     <div class="bg-white p-3 border border-gray-100 rounded-xl flex flex-col gap-1 relative pb-3 shadow-sm mb-2">
                         <button onclick="eliminarItemTemporal(${index})" class="absolute top-2 right-2 text-red-500 bg-red-50 rounded-lg w-7 h-7 flex items-center justify-center font-bold hover:bg-red-100">X</button>
@@ -558,15 +557,21 @@
                         <div class="flex gap-2 items-end mt-2">
                             <div class="flex-1">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">Categoría</label>
-                                <input type="text" class="w-full border-b border-gray-200 text-xs py-1 bg-transparent text-gray-600 font-semibold" value="${item.categoria}" readonly>
+                                <select class="w-full border-b border-gray-300 text-xs py-1 bg-transparent text-gray-700 font-bold focus:border-blue-500 focus:outline-none" onchange="itemsTemporales[${index}].categoria=this.value">
+                                    ${opcionesCategoria}
+                                </select>
                             </div>
                             <div class="w-16">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">Cant.</label>
-                                <input type="number" step="any" class="w-full border-b border-gray-400 text-sm py-1 text-center bg-transparent font-black text-blue-600" value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseFloat(this.value)||0">
+                                <input type="number" step="any" class="w-full border-b border-gray-400 text-sm py-1 text-center bg-transparent font-black text-blue-600 focus:border-blue-500 focus:outline-none" value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseFloat(this.value)||0">
                             </div>
-                            <div class="w-16">
+                            <div class="w-20">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">U.</label>
-                                <input type="text" class="w-full border-b border-gray-200 text-xs py-1 text-center bg-transparent text-gray-600 font-semibold" value="${item.unidad}" readonly>
+                                <select class="w-full border-b border-gray-300 text-xs py-1 text-center bg-transparent text-gray-700 font-bold focus:border-blue-500 focus:outline-none" onchange="itemsTemporales[${index}].unidad=this.value">
+                                    <option value="unid" ${item.unidad === 'unid' || !['kg','gs','g'].includes(item.unidad) ? 'selected' : ''}>unid</option>
+                                    <option value="kg" ${item.unidad === 'kg' ? 'selected' : ''}>kg</option>
+                                    <option value="gs" ${(item.unidad === 'gs' || item.unidad === 'g') ? 'selected' : ''}>gs</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -594,7 +599,6 @@
             guardarDatosConLoader(); cerrarModalVerificacion(); cambiarTab('stock');
         }
 
-        // --- RENDERIZADO VISUAL V8.6 ---
         function renderizar() {
             const listaStock = document.getElementById('lista-stock');
             const listaCompras = document.getElementById('lista-compras');
@@ -604,41 +608,34 @@
             
             let countOK = 0, countAlerta = 0, countAgotado = 0;
             
-            // 1. Filtrar búsqueda por texto
             let invFiltrado = inventario.filter(item => { if (termino && !item.nombre.toLowerCase().includes(termino) && !(item.categoria || '').toLowerCase().includes(termino)) return false; return true; });
             const invOrdenado = [...invFiltrado].sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-            // ESTILOS VISUALES DE LOS BOTONES DE FILTRO
             document.getElementById('btn-filtro-suficiente').className = filtroActual === 'suficiente' ? "cursor-pointer bg-green-50 rounded-xl p-2 shadow-sm border-2 border-green-400 flex flex-col items-center justify-center transition-all transform scale-105" : "cursor-pointer bg-white rounded-xl p-2 shadow-sm border border-gray-100 flex flex-col items-center justify-center transition-all hover:bg-gray-50";
             document.getElementById('btn-filtro-alerta').className = filtroActual === 'alerta' ? "cursor-pointer bg-yellow-50 rounded-xl p-2 shadow-sm border-2 border-yellow-400 flex flex-col items-center justify-center transition-all transform scale-105" : "cursor-pointer bg-white rounded-xl p-2 shadow-sm border border-gray-100 flex flex-col items-center justify-center transition-all hover:bg-gray-50";
             document.getElementById('btn-filtro-agotado').className = filtroActual === 'agotado' ? "cursor-pointer bg-red-50 rounded-xl p-2 shadow-sm border-2 border-red-400 flex flex-col items-center justify-center transition-all transform scale-105" : "cursor-pointer bg-white rounded-xl p-2 shadow-sm border border-gray-100 flex flex-col items-center justify-center transition-all hover:bg-gray-50";
 
-            // AGRUPACIÓN POR CATEGORÍAS (ACORDEONES)
             const categoriasUnicas = [...new Set(invOrdenado.map(i => i.categoria || 'Otros'))].sort();
 
             categoriasUnicas.forEach(cat => {
-                // Primero filtramos los items de esta categoría
                 let itemsCat = invOrdenado.filter(i => (i.categoria || 'Otros') === cat);
                 
-                // Procesar recuentos globales antes de aplicar filtro visual de estado
                 itemsCat.forEach(item => {
                     if (item.cantidad <= item.minimo) countAgotado++;
                     else if (item.cantidad > item.minimo && item.cantidad <= (item.minimo + 1)) countAlerta++;
                     else countOK++;
                 });
 
-                // Si hay un filtro activo, escondemos los que no aplican
                 if (filtroActual === 'suficiente') itemsCat = itemsCat.filter(i => i.cantidad > (i.minimo + 1));
                 if (filtroActual === 'alerta') itemsCat = itemsCat.filter(i => i.cantidad > i.minimo && i.cantidad <= (i.minimo + 1));
                 if (filtroActual === 'agotado') itemsCat = itemsCat.filter(i => i.cantidad <= i.minimo);
 
-                if (itemsCat.length === 0) return; // Si la categoría quedó vacía tras el filtro, no mostrarla
+                if (itemsCat.length === 0) return;
 
                 const emoji = iconosCat[cat] || "📦";
-                const estaAbierto = estadoCategorias[cat] !== false; // Abierto por defecto
+                const estaAbierto = estadoCategorias[cat] !== false; 
                 const flecha = estaAbierto ? '▼' : '▶';
                 
-                // Título de categoría (Acordeón)
                 listaStock.innerHTML += `
                     <div onclick="toggleCategoria('${cat}')" class="font-extrabold text-gray-700 mt-5 mb-2 flex items-center justify-between text-[15px] border-b-2 border-gray-200 pb-1.5 cursor-pointer select-none active:text-blue-600 transition px-1">
                         <div class="flex items-center gap-2">${emoji} ${cat}</div>
@@ -660,7 +657,6 @@
                         let stepUp = item.unidad === 'kg' ? 0.5 : (item.unidad === 'gs' || item.unidad === 'g' ? 100 : 1);
                         let stepDown = item.unidad === 'kg' ? -0.5 : (item.unidad === 'gs' || item.unidad === 'g' ? -100 : -1);
 
-                        // Tarjeta Píldora Rediseñada
                         listaStock.innerHTML += `
                             <div class="flex flex-col p-3.5 rounded-xl shadow-sm mb-3 border border-gray-100 relative overflow-hidden ${bgClass}">
                                 <div class="absolute left-0 top-0 bottom-0 w-1.5 ${borderSide}"></div>
@@ -689,12 +685,10 @@
                 }
             });
 
-            // Actualizar numeración Dashboard global
             document.getElementById('dash-ok').innerText = countOK;
             document.getElementById('dash-alerta').innerText = countAlerta;
             document.getElementById('dash-agotado').innerText = countAgotado;
 
-            // RENDERIZAR LISTA DE COMPRAS
             const faltantes = invOrdenado.filter(item => item.cantidad <= item.minimo);
             
             if (faltantes.length === 0) {
