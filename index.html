@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock de Casa V8.7 - Edición IA Completa</title>
+    <title>Stock de Casa V8.9 - Acordeones Inteligentes</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
@@ -35,7 +35,7 @@
         };
 
         let filtroActual = 'todos'; 
-        let estadoCategorias = {}; 
+        let estadoCategorias = {}; // Ahora inician cerradas por defecto
     </script>
 
     <div class="bg-blue-600 text-white p-3 flex justify-between items-center shadow-md shrink-0 z-10 relative">
@@ -352,7 +352,7 @@
         }
 
         function toggleCategoria(cat) {
-            estadoCategorias[cat] = estadoCategorias[cat] === undefined ? false : !estadoCategorias[cat];
+            estadoCategorias[cat] = !estadoCategorias[cat];
             renderizar();
         }
 
@@ -541,7 +541,6 @@
                        </label>`
                     : `<span class="bg-green-50 text-green-800 text-xs font-bold px-2.5 py-2 rounded-lg shadow-sm mt-2 inline-block border border-green-200">✨ Producto Nuevo</span>`;
 
-                // Construir las opciones de Categoría dinámicamente
                 let opcionesCategoria = Object.keys(iconosCat).map(cat => 
                     `<option value="${cat}" ${item.categoria === cat ? 'selected' : ''}>${cat}</option>`
                 ).join('');
@@ -556,22 +555,26 @@
                         </div>
                         <div class="flex gap-2 items-end mt-2">
                             <div class="flex-1">
-                                <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">Categoría</label>
-                                <select class="w-full border-b border-gray-300 text-xs py-1 bg-transparent text-gray-700 font-bold focus:border-blue-500 focus:outline-none" onchange="itemsTemporales[${index}].categoria=this.value">
+                                <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">Cat.</label>
+                                <select class="w-full border-b border-gray-300 text-xs py-1.5 bg-gray-50 rounded text-gray-700 font-bold focus:border-blue-500 focus:outline-none px-1" onchange="itemsTemporales[${index}].categoria=this.value">
                                     ${opcionesCategoria}
                                 </select>
                             </div>
-                            <div class="w-16">
+                            <div class="w-14">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">Cant.</label>
-                                <input type="number" step="any" class="w-full border-b border-gray-400 text-sm py-1 text-center bg-transparent font-black text-blue-600 focus:border-blue-500 focus:outline-none" value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseFloat(this.value)||0">
+                                <input type="number" step="any" class="w-full border-b border-gray-400 text-sm py-1 text-center bg-gray-50 rounded font-black text-blue-600 focus:border-blue-500 focus:outline-none" value="${item.cantidad}" onchange="itemsTemporales[${index}].cantidad=parseFloat(this.value)||0">
                             </div>
-                            <div class="w-20">
+                            <div class="w-16">
                                 <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">U.</label>
-                                <select class="w-full border-b border-gray-300 text-xs py-1 text-center bg-transparent text-gray-700 font-bold focus:border-blue-500 focus:outline-none" onchange="itemsTemporales[${index}].unidad=this.value">
+                                <select class="w-full border-b border-gray-300 text-xs py-1.5 text-center bg-gray-50 rounded text-gray-700 font-bold focus:border-blue-500 focus:outline-none px-1" onchange="itemsTemporales[${index}].unidad=this.value">
                                     <option value="unid" ${item.unidad === 'unid' || !['kg','gs','g'].includes(item.unidad) ? 'selected' : ''}>unid</option>
                                     <option value="kg" ${item.unidad === 'kg' ? 'selected' : ''}>kg</option>
                                     <option value="gs" ${(item.unidad === 'gs' || item.unidad === 'g') ? 'selected' : ''}>gs</option>
                                 </select>
+                            </div>
+                            <div class="w-12">
+                                <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">Mín.</label>
+                                <input type="number" step="any" class="w-full border-b border-gray-300 text-sm py-1 text-center bg-gray-50 rounded text-gray-700 font-bold focus:border-blue-500 focus:outline-none" value="${item.minimo}" onchange="itemsTemporales[${index}].minimo=parseFloat(this.value)||0">
                             </div>
                         </div>
                     </div>
@@ -591,7 +594,7 @@
                         existente.cantidad += item.cantidad;
                         if(vaAHistorial && item.cantidad > 0) enviarAHistorialBackground(existente.nombre, existente.categoria, item.cantidad, existente.unidad);
                     } else {
-                        inventario.push({ id: Date.now() + Math.random(), nombre: item.nombre, categoria: item.categoria, cantidad: item.cantidad, unidad: item.unidad || 'unid', minimo: 1 });
+                        inventario.push({ id: Date.now() + Math.random(), nombre: item.nombre, categoria: item.categoria, cantidad: item.cantidad, unidad: item.unidad || 'unid', minimo: item.minimo });
                         if(vaAHistorial && item.cantidad > 0) enviarAHistorialBackground(item.nombre, item.categoria, item.cantidad, item.unidad);
                     }
                 }
@@ -633,7 +636,9 @@
                 if (itemsCat.length === 0) return;
 
                 const emoji = iconosCat[cat] || "📦";
-                const estaAbierto = estadoCategorias[cat] !== false; 
+                
+                // INTELIGENCIA VISUAL: Abierto si se hizo click, si se busca texto, o si se usa filtro
+                const estaAbierto = !!estadoCategorias[cat] || termino !== '' || filtroActual !== 'todos'; 
                 const flecha = estaAbierto ? '▼' : '▶';
                 
                 listaStock.innerHTML += `
